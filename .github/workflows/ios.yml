@@ -10,7 +10,7 @@ env:
 
 jobs:
   core-tests:
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
       - name: Test CozyCore
@@ -23,7 +23,7 @@ jobs:
 
   # IPA chưa ký: cài bằng Sideloadly / AltStore (công cụ này tự ký lại bằng Apple ID của bạn).
   unsigned-ipa:
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
       - name: Install XcodeGen
@@ -57,7 +57,7 @@ jobs:
 
   # Cài lên Simulator và hỏi iOS xem widget extension có được đăng ký không.
   widget-registration:
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
       - name: Install XcodeGen
@@ -70,7 +70,7 @@ jobs:
 
   # IPA đã ký (có iCloud + WeatherKit + Push). Chỉ chạy khi đã khai báo đủ secrets, xem README.
   signed-ipa:
-    runs-on: macos-15
+    runs-on: macos-26
     if: github.event_name != 'pull_request'
     env:
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
