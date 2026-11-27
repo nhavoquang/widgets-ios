@@ -47,11 +47,26 @@ jobs:
           codesign --force --sign - --entitlements build/sideload.entitlements Payload/CozyDaily.app/PlugIns/CozyWidgets.appex
           codesign --force --sign - --entitlements build/sideload.entitlements Payload/CozyDaily.app
           zip -qry "CozyDaily-unsigned-${GITHUB_RUN_NUMBER}.ipa" Payload
+      - name: Verify widget extension inside IPA
+        run: bash ci/verify-ipa.sh CozyDaily-unsigned-*.ipa
       - uses: actions/upload-artifact@v4
         with:
           name: CozyDaily-unsigned-ipa
           path: CozyDaily-unsigned-*.ipa
           if-no-files-found: error
+
+  # Cài lên Simulator và hỏi iOS xem widget extension có được đăng ký không.
+  widget-registration:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen && xcodegen generate
+      - name: Build for simulator
+        run: |
+          bash ci/xcb.sh build -project CozyDaily.xcodeproj -scheme CozyDaily             -destination 'generic/platform=iOS Simulator' -derivedDataPath build/dd
+      - name: Install and check registration
+        run: bash ci/check-widget.sh build/dd/Build/Products/Debug-iphonesimulator/CozyDaily.app
 
   # IPA đã ký (có iCloud + WeatherKit + Push). Chỉ chạy khi đã khai báo đủ secrets, xem README.
   signed-ipa:
