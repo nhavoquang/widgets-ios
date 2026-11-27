@@ -29,6 +29,7 @@ struct SettingsSheet: View {
                         set: { v in model.updateSettings { $0.shareDeviceBattery = v } }
                     ))
                 }
+                WidgetDiagnosticsSection()
                 Section("iCloud") {
                     Label(CloudConfig.isEnabled ? "Đang bật đồng bộ" : "Chưa bật trong bản cài này", systemImage: CloudConfig.isEnabled ? "checkmark.icloud" : "icloud.slash")
                     if let error = model.cloudError {
