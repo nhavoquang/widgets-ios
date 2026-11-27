@@ -1,0 +1,29 @@
+name: iOS build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  core-tests:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test CozyCore
+        run: swift test --package-path Packages/CozyCore
+
+  app-build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate project
+        run: xcodegen generate
+      - name: Build app + widgets (simulator, unsigned)
+        run: |
+          xcodebuild build \
+            -project CozyDaily.xcodeproj \
+            -scheme CozyDaily \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO
