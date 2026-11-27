@@ -9,6 +9,7 @@ App iOS cá nhân hóa nhịp sống hằng ngày với widget Lock Screen, Home
 | `Packages/CozyCore` | Logic thuần Swift, không phụ thuộc UI: model, Spaced Repetition 1‑3‑7‑30, Âm lịch Việt Nam, đếm ngày 5 chế độ, cache WeatherKit, máy trạng thái linh vật, lưới sticker tháng, kho lưu JSON trong App Group. Build và test được cả trên Windows/Linux. |
 | `Shared` | Code SwiftUI dùng chung cho App và Widget: design system, `MascotView`, các `AppIntent` (Đã thuộc, Đổi từ, Mood, Quick Ping, chọn mẫu widget), view widget. |
 | `CozyDaily` | App chính: 4 tab (Hôm nay, Kết nối, Lịch & Lưới, Xưởng Widget), dịch vụ WeatherKit, EventKit, phát âm, haptic, Shortcuts, Focus Filter. |
+| `ci` | Script và cấu hình đóng gói IPA. |
 | `CozyWidgets` | Widget Extension: Xưởng Widget (tùy biến), Từ vựng, Người yêu, Đếm ngày, StandBy. |
 | `project.yml` | Cấu hình XcodeGen để sinh `CozyDaily.xcodeproj`. |
 
@@ -28,19 +29,52 @@ Trong Xcode, ở tab **Signing & Capabilities** của cả hai target `CozyDaily
 2. Đổi App Group `group.com.cozydaily.shared` và bundle id `com.cozydaily.app` sang tên riêng nếu bị trùng (nhớ sửa hằng `SnapshotStore.appGroupID` cho khớp).
 3. WeatherKit và iCloud/CloudKit cần tài khoản Apple Developer trả phí. Khi chưa có, app vẫn chạy với dữ liệu thời tiết mẫu.
 
+## Cài IPA từ GitHub Actions
+
+Mỗi lần push, workflow **iOS build** tạo artifact trong trang của lần chạy (tab Actions).
+
+### Cách 1: IPA chưa ký (`CozyDaily-unsigned-ipa`), dùng Apple ID miễn phí
+1. Tải artifact, giải nén lấy file `.ipa`.
+2. Cài bằng AltStore / SideStore (khuyên dùng vì giữ được App Group để widget đọc dữ liệu của app) hoặc Sideloadly.
+3. Apple ID miễn phí: app hết hạn sau 7 ngày, cần ký lại. Bản này không có iCloud, Push, WeatherKit (dùng dữ liệu mẫu).
+
+### Cách 2: IPA đã ký (`CozyDaily-signed-ipa`), cần Apple Developer trả phí
+1. Trong Apple Developer portal:
+   - Đăng ký UDID iPhone (của bạn và người test).
+   - Tạo App ID `<prefix>.app` và `<prefix>.app.widgets`, App Group `group.<prefix>.shared`, iCloud container `iCloud.<prefix>`.
+   - Bật App Groups, iCloud (CloudKit), Push Notifications, WeatherKit cho App ID của app (WeatherKit bật cả ở mục App Services); App Groups và iCloud cho App ID của widget.
+2. App Store Connect > Users and Access > Integrations: tạo API key quyền **Admin**, tải file `.p8`.
+3. GitHub repo > Settings > Secrets and variables > Actions:
+   - Secrets: `APPLE_TEAM_ID`, `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_PRIVATE_KEY` (toàn bộ nội dung file `.p8`).
+   - Variable: `COZY_BUNDLE_PREFIX` (vd. `com.tenban.cozydaily`).
+4. Chạy lại workflow. Cài IPA bằng Apple Configurator, Xcode hoặc dịch vụ OTA.
+
+IPA này dùng môi trường CloudKit **Development**. Trước khi phát hành thật cần Deploy Schema sang Production trong CloudKit Console.
+
+## Tài nguyên linh vật
+
+Tên file do `MascotAssetManager` quy định (danh sách đầy đủ: `MascotAssetManager.allAssets`):
+
+| Bề mặt | Tên | Ví dụ | Đặt ở |
+| --- | --- | --- | --- |
+| Animation trong app | `anim_<key>.riv` / `.json` | `anim_mascot_cat_sleeping.json` | `CozyDaily/Resources` |
+| Widget full color | `img_<key>` (PNG trong suốt) | `img_mascot_cat`, `img_food_pho` | Asset catalog của **cả** app và widget |
+| Lock Screen / Tinted | `tint_<key>` (template) | `tint_mood_happy` | Asset catalog của cả hai |
+
+Thiếu file thì tự dùng emoji hoặc SF Symbol. Để chạy Rive/Lottie, thêm package vào `project.yml` (xem `CozyDaily/Mascot/MascotAnimationAdapters.swift`).
+
 ## Chạy test logic lõi
 
 ```bash
 swift test --package-path Packages/CozyCore
 ```
 
-27 test bao gồm: Tết 2024/2025/2026, tháng 6 nhuận 2025, chuyển đổi khứ hồi âm ↔ dương 2024–2027, Can Chi, chu kỳ SRS, các chế độ đếm ngày, chính sách cache thời tiết, linh vật, streak, lưới tháng, Auto‑Theme ngày lễ.
-
 ## Trạng thái
 
-**Giai đoạn 1 (đã có):** chạy offline đầy đủ giao diện, dữ liệu local-first trong App Group, widget tương tác, dữ liệu mẫu cho Couple/Squad.
+**Đã có:** 4 tab, widget tương tác, chuyển cảnh và chế độ đơn sắc cho widget, lớp animation linh vật, đồng bộ CloudKit (Private + Shared DB, `CKShare`, Silent Push).
 
-**Giai đoạn 2 (chưa làm):**
-- CloudKit Private DB + Shared DB, `CKShare` mời qua iMessage/AirDrop, `CKDatabaseSubscription` + Silent Push để cập nhật widget khi đối phương đổi trạng thái (điểm móc: `CloudSyncService`).
-- Bộ minh họa linh vật màu nước: thêm ảnh vào `Assets.xcassets/Mascots` theo tên `MascotState.assetName` (vd. `cat_sleeping_blanket`), `MascotView` sẽ tự dùng ảnh thay cho emoji.
-- Font viết tay riêng (hiện dùng Noteworthy có sẵn của iOS).
+**Chưa kiểm chứng:** đồng bộ CloudKit và IPA ký số chưa chạy thử (cần tài khoản trả phí và 2 máy thật); adapter Rive/Lottie chưa được biên dịch; giao diện chưa được xem trên thiết bị.
+
+**Còn thiếu:** minh họa linh vật, font viết tay riêng.
+
+Giới hạn số người (2 cho cặp đôi, 8 cho nhóm) chưa được CloudKit ép buộc.
