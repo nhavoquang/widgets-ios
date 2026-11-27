@@ -1,9 +1,11 @@
 import SwiftUI
 import AppIntents
+import WidgetKit
 import CozyCore
 
 @main
 struct CozyDailyApp: App {
+    @UIApplicationDelegateAdaptor(CozyAppDelegate.self) private var appDelegate
     @State private var model = AppModel()
     @Environment(\.scenePhase) private var scenePhase
 
@@ -13,6 +15,10 @@ struct CozyDailyApp: App {
                 .environment(model)
                 .tint(Color.inkCoffee)
                 .task { await model.onForeground() }
+                .onReceive(NotificationCenter.default.publisher(for: .cozyRemoteDidChange).receive(on: DispatchQueue.main)) { _ in
+                    withAnimation(CozyMotion.spring) { model.refresh() }
+                    WidgetCenter.shared.reloadAllTimelines()
+                }
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active { Task { await model.onForeground() } }
                 }
@@ -48,7 +54,7 @@ struct RootTabView: View {
 struct CozyShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(
-            intent: LogMoodIntent(),
+            intent: QuickCheckInIntent(),
             phrases: ["Cập nhật mood \(.applicationName)", "Log mood in \(.applicationName)"],
             shortTitle: "Cập nhật mood",
             systemImageName: "face.smiling"
@@ -64,8 +70,8 @@ struct CozyShortcuts: AppShortcutsProvider {
 
 /// Bộ lọc Tập trung: khi bật Làm việc/Ngủ…, tự đặt mood tương ứng.
 struct CozyFocusFilter: SetFocusFilterIntent {
-    static var title: LocalizedStringResource = "Mood theo chế độ Tập trung"
-    static var description: IntentDescription? = IntentDescription("Tự cập nhật mood CozyDaily khi chế độ Tập trung này bật.")
+    static let title: LocalizedStringResource = "Mood theo chế độ Tập trung"
+    static let description: IntentDescription? = IntentDescription("Tự cập nhật mood CozyDaily khi chế độ Tập trung này bật.")
 
     @Parameter(title: "Mood khi bật", default: .busy)
     var mood: MoodOption
@@ -76,7 +82,7 @@ struct CozyFocusFilter: SetFocusFilterIntent {
 
     func perform() async throws -> some IntentResult {
         CozyShared.repository.quickMood(mood.mood, source: .focus)
-        CozyShared.reloadWidgets()
+        await CozyShared.finishIntent()
         return .result()
     }
 }

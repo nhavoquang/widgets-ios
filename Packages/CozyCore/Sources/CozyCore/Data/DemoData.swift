@@ -4,19 +4,26 @@ import Foundation
 public enum DemoData {
     public static let meID = "me"
 
+    /// ID cố định cho dữ liệu mẫu: hai thiết bị không tạo bản trùng khi đồng bộ.
+    public static func id(_ n: Int) -> UUID {
+        UUID(uuidString: String(format: "C0C0C0C0-0000-4000-8000-%012d", n))!
+    }
+
+    public static func isDemo(_ id: UUID) -> Bool { id.uuidString.hasPrefix("C0C0C0C0-0000-4000-8000-") }
+
     public static func makeInitialSnapshot(now: Date, calendar: Calendar = .cozy) -> CozySnapshot {
         let today = calendar.startOfDay(for: now)
         func days(_ n: Int) -> Date { calendar.date(byAdding: .day, value: n, to: today)! }
 
         let year = calendar.component(.year, from: now)
-        let tet = CozyEvent(title: "Tết Nguyên Đán", emoji: "🧧", kind: .lunar(day: 1, month: 1), accent: .accentPeach)
-        let ram = CozyEvent(title: "Rằm hằng tháng", emoji: "🌕", kind: .lunar(day: 15, month: nil), accent: .accentHoney)
-        let trip = CozyEvent(title: "Đi Đà Lạt", emoji: "🏕️", kind: .countdown(date: days(23), repeatsYearly: false), accent: .accentSky, isShared: true)
-        let love = CozyEvent(title: "Ngày yêu nhau", emoji: "💞", kind: .countUp(since: days(-412)), accent: .accentPeach, isShared: true)
-        let english = CozyEvent(title: "Lớp tiếng Anh", emoji: "📚", kind: .weekly(weekdays: [3, 5], hour: 19, minute: 30), accent: .accentSage)
-        let report = CozyEvent(title: "Nộp báo cáo", emoji: "📝", kind: .deadline(due: calendar.date(bySettingHour: 17, minute: 0, second: 0, of: days(3))!), accent: .accentSky)
+        let tet = CozyEvent(id: id(1), title: "Tết Nguyên Đán", emoji: "🧧", kind: .lunar(day: 1, month: 1), accent: .accentPeach)
+        let ram = CozyEvent(id: id(2), title: "Rằm hằng tháng", emoji: "🌕", kind: .lunar(day: 15, month: nil), accent: .accentHoney)
+        let trip = CozyEvent(id: id(3), title: "Đi Đà Lạt", emoji: "🏕️", kind: .countdown(date: days(23), repeatsYearly: false), accent: .accentSky, isShared: true)
+        let love = CozyEvent(id: id(4), title: "Ngày yêu nhau", emoji: "💞", kind: .countUp(since: days(-412)), accent: .accentPeach, isShared: true)
+        let english = CozyEvent(id: id(5), title: "Lớp tiếng Anh", emoji: "📚", kind: .weekly(weekdays: [3, 5], hour: 19, minute: 30), accent: .accentSage)
+        let report = CozyEvent(id: id(6), title: "Nộp báo cáo", emoji: "📝", kind: .deadline(due: calendar.date(bySettingHour: 17, minute: 0, second: 0, of: days(3))!), accent: .accentSky)
         let birthday = CozyEvent(
-            title: "Sinh nhật Mây", emoji: "🎂",
+            id: id(7), title: "Sinh nhật Mây", emoji: "🎂",
             kind: .countdown(date: calendar.date(from: DateComponents(year: year, month: 12, day: 20))!, repeatsYearly: true),
             accent: .accentHoney, isShared: true
         )
@@ -53,18 +60,18 @@ public enum DemoData {
         for i in 1...4 { learned[calendar.dayKey(for: days(-i))] = [2, 3, 1, 4][i - 1] }
 
         let checkIns: [CheckIn] = [
-            CheckIn(date: days(-1).addingTimeInterval(12 * 3600), mood: .happy, foods: [.bunBo], socialBattery: 80, note: "Ăn bún bò ngon"),
-            CheckIn(date: days(-2).addingTimeInterval(13 * 3600), mood: .tired, foods: [.comTam], socialBattery: 30, note: "Họp cả ngày"),
-            CheckIn(date: days(-3).addingTimeInterval(9 * 3600), mood: .chill, foods: [.coffee, .banhMi], socialBattery: 65, note: ""),
-            CheckIn(date: days(-5).addingTimeInterval(19 * 3600), mood: .excited, foods: [.hotpot], socialBattery: 95, note: "Lẩu với hội bạn"),
+            CheckIn(id: id(11), date: days(-1).addingTimeInterval(12 * 3600), mood: .happy, foods: [.bunBo], socialBattery: 80, note: "Ăn bún bò ngon"),
+            CheckIn(id: id(12), date: days(-2).addingTimeInterval(13 * 3600), mood: .tired, foods: [.comTam], socialBattery: 30, note: "Họp cả ngày"),
+            CheckIn(id: id(13), date: days(-3).addingTimeInterval(9 * 3600), mood: .chill, foods: [.coffee, .banhMi], socialBattery: 65, note: ""),
+            CheckIn(id: id(14), date: days(-5).addingTimeInterval(19 * 3600), mood: .excited, foods: [.hotpot], socialBattery: 95, note: "Lẩu với hội bạn"),
         ]
 
         let configs: [WidgetConfig] = [
-            WidgetConfig(name: "Từ vựng hôm nay", content: .vocab),
-            WidgetConfig(name: "Mood & Món ăn", content: .moodFood),
-            WidgetConfig(name: "Người yêu", content: .couple, species: .bear),
-            WidgetConfig(name: "Đi Đà Lạt", content: .event, eventID: trip.id),
-            WidgetConfig(name: "Combo sáng", content: .combo, secondaryContent: .weather, accent: .accentHoney),
+            WidgetConfig(id: id(21), name: "Từ vựng hôm nay", content: .vocab),
+            WidgetConfig(id: id(22), name: "Mood & Món ăn", content: .moodFood),
+            WidgetConfig(id: id(23), name: "Người yêu", content: .couple, species: .bear),
+            WidgetConfig(id: id(24), name: "Đi Đà Lạt", content: .event, eventID: trip.id),
+            WidgetConfig(id: id(25), name: "Combo sáng", content: .combo, secondaryContent: .weather, accent: .accentHoney),
         ]
 
         return CozySnapshot(

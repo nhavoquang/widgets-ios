@@ -113,7 +113,23 @@ public struct Interaction: Codable, Hashable, Sendable, Identifiable {
     }
 }
 
-/// Không gian chia sẻ (đồng bộ qua CloudKit Shared DB + CKShare ở giai đoạn 2).
+/// Vị trí của không gian trên CloudKit (nil = dữ liệu mẫu, chỉ có trên máy).
+public struct CloudSpaceInfo: Codable, Hashable, Sendable {
+    public var zoneName: String
+    public var ownerName: String
+    public var isOwner: Bool
+    /// Sự kiện chung đã thấy trên máy chủ ở lần đồng bộ trước.
+    public var syncedEventIDs: [UUID]
+
+    public init(zoneName: String, ownerName: String, isOwner: Bool, syncedEventIDs: [UUID] = []) {
+        self.zoneName = zoneName
+        self.ownerName = ownerName
+        self.isOwner = isOwner
+        self.syncedEventIDs = syncedEventIDs
+    }
+}
+
+/// Không gian chia sẻ (đồng bộ qua CloudKit Shared DB + CKShare).
 public struct SharedSpace: Codable, Hashable, Sendable, Identifiable {
     public var id: UUID
     public var kind: SpaceKind
@@ -125,6 +141,8 @@ public struct SharedSpace: Codable, Hashable, Sendable, Identifiable {
     public var sharedEventIDs: [UUID]
     /// URL CKShare để mời qua iMessage/AirDrop (nil khi chưa chia sẻ).
     public var shareURL: URL?
+    public var cloud: CloudSpaceInfo?
+    public var modifiedAt: Date?
 
     public init(
         id: UUID = UUID(), kind: SpaceKind, name: String, members: [MemberStatus],
@@ -149,6 +167,13 @@ public struct SharedSpace: Codable, Hashable, Sendable, Identifiable {
     }
 
     public var canAddMember: Bool { members.count < kind.memberLimit.upperBound }
+}
+
+public extension Array where Element == SharedSpace {
+    /// Không gian thật (đã đồng bộ iCloud) được ưu tiên hơn dữ liệu mẫu.
+    func preferred(_ kind: SpaceKind) -> SharedSpace? {
+        first { $0.kind == kind && $0.cloud != nil } ?? first { $0.kind == kind }
+    }
 }
 
 /// Sticker phản hồi nhanh cho Squad Board.

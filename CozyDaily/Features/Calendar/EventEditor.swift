@@ -24,7 +24,7 @@ struct EventEditor: View {
     @State private var title: String
     @State private var emoji: String
     @State private var accent: ColorToken
-    @State private var isShared: Bool
+    @State private var sharedSpaces: Set<UUID> = []
     @State private var mode: Mode
     @State private var date: Date
     @State private var repeatsYearly: Bool
@@ -39,7 +39,6 @@ struct EventEditor: View {
         _title = State(initialValue: event?.title ?? "")
         _emoji = State(initialValue: event?.emoji ?? "📅")
         _accent = State(initialValue: event?.accent ?? .accentSky)
-        _isShared = State(initialValue: event?.isShared ?? false)
         var mode = Mode.countdown
         var date = Calendar.cozy.date(byAdding: .day, value: 7, to: Date())!
         var yearly = false
@@ -80,7 +79,7 @@ struct EventEditor: View {
     }
 
     private var draft: CozyEvent {
-        CozyEvent(id: original?.id ?? UUID(), title: title.isEmpty ? "Sự kiện" : title, emoji: emoji, kind: kind, accent: accent, isShared: isShared, externalIdentifier: original?.externalIdentifier, createdAt: original?.createdAt ?? Date())
+        CozyEvent(id: original?.id ?? UUID(), title: title.isEmpty ? "Sự kiện" : title, emoji: emoji, kind: kind, accent: accent, isShared: !sharedSpaces.isEmpty, externalIdentifier: original?.externalIdentifier, createdAt: original?.createdAt ?? Date())
     }
 
     var body: some View {
@@ -153,7 +152,12 @@ struct EventEditor: View {
                             Label(t.displayName, systemImage: "circle.fill").tint(t.color).tag(t)
                         }
                     }
-                    Toggle("Chia sẻ với người yêu / nhóm bạn", isOn: $isShared)
+                    ForEach([model.couple, model.squad].compactMap { $0 }) { space in
+                        Toggle("Chia sẻ với \(space.name)", isOn: Binding(
+                            get: { sharedSpaces.contains(space.id) },
+                            set: { on in if on { sharedSpaces.insert(space.id) } else { sharedSpaces.remove(space.id) } }
+                        ))
+                    }
                 }
 
                 if let original {
@@ -166,12 +170,16 @@ struct EventEditor: View {
                 }
             }
             .environment(\.locale, Locale(identifier: "vi_VN"))
+            .onAppear {
+                guard let original else { return }
+                sharedSpaces = Set(model.snapshot.spaces.filter { $0.sharedEventIDs.contains(original.id) }.map(\.id))
+            }
             .navigationTitle(original == nil ? "Sự kiện mới" : "Sửa sự kiện")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Hủy") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Lưu") { model.save(draft); dismiss() }.bold()
+                    Button("Lưu") { model.save(draft, sharedWith: sharedSpaces); dismiss() }.bold()
                 }
             }
         }

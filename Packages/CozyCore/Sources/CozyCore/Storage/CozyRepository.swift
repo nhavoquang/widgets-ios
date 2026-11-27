@@ -10,6 +10,8 @@ public protocol SyncEngine: AnyObject, Sendable {
 public final class CozyRepository: @unchecked Sendable {
     public enum Change: String, Hashable, Sendable {
         case settings, vocab, checkIn, events, spaces, widgets, weather
+        /// Thay đổi đến từ iCloud (không cần đẩy ngược lên).
+        case remote
     }
 
     public let store: SnapshotStore
@@ -201,6 +203,18 @@ public final class CozyRepository: @unchecked Sendable {
         return checkIn(mood: mood, foods: last?.foods ?? [], socialBattery: last?.socialBattery ?? 60, note: last?.note ?? "", source: source, now: now)
     }
 
+    /// Check-in nhanh từ widget/Shortcut: giá trị nil giữ nguyên theo lần trước trong ngày.
+    @discardableResult
+    public func quickCheckIn(mood: Mood?, food: FoodSticker?, source: CheckIn.Source, now: Date = Date()) -> CheckIn {
+        let last = latestCheckIn(on: now)
+        return checkIn(
+            mood: mood ?? last?.mood ?? .chill,
+            foods: food.map { [$0] } ?? last?.foods ?? [],
+            socialBattery: last?.socialBattery ?? 60,
+            note: last?.note ?? "", source: source, now: now
+        )
+    }
+
     public func latestCheckIn(on day: Date) -> CheckIn? {
         snapshot().checkIns.filter { calendar.isDate($0.date, inSameDayAs: day) }.max { $0.date < $1.date }
     }
@@ -211,15 +225,27 @@ public final class CozyRepository: @unchecked Sendable {
 
     // MARK: - Events
 
-    public func upsertEvent(_ event: CozyEvent) {
-        mutate([.events]) { s in
-            if let i = s.events.firstIndex(where: { $0.id == event.id }) { s.events[i] = event } else { s.events.append(event) }
+    /// - Parameter spaceIDs: nếu khác nil, đặt lại danh sách không gian được chia sẻ sự kiện này.
+    public func upsertEvent(_ event: CozyEvent, sharedWith spaceIDs: Set<UUID>? = nil, now: Date = Date()) {
+        mutate([.events, .spaces]) { s in
+            var e = event
+            e.modifiedAt = now
+            if let spaceIDs {
+                e.isShared = !spaceIDs.isEmpty
+                for i in s.spaces.indices {
+                    s.spaces[i].sharedEventIDs.removeAll { $0 == e.id }
+                    if spaceIDs.contains(s.spaces[i].id) { s.spaces[i].sharedEventIDs.append(e.id) }
+                }
+            }
+            s.deletedIDs?[e.id.uuidString] = nil
+            if let i = s.events.firstIndex(where: { $0.id == e.id }) { s.events[i] = e } else { s.events.append(e) }
         }
     }
 
     public func deleteEvent(id: UUID) {
         mutate([.events]) { s in
             s.events.removeAll { $0.id == id }
+            s.deletedIDs = (s.deletedIDs ?? [:]).merging([id.uuidString: Date()]) { _, new in new }
             for i in s.spaces.indices { s.spaces[i].sharedEventIDs.removeAll { $0 == id } }
         }
     }
@@ -238,7 +264,7 @@ public final class CozyRepository: @unchecked Sendable {
     }
 
     public func space(kind: SpaceKind) -> SharedSpace? {
-        snapshot().spaces.first { $0.kind == kind }
+        snapshot().spaces.preferred(kind)
     }
 
     public func setActiveSpace(_ id: UUID) {
@@ -259,6 +285,41 @@ public final class CozyRepository: @unchecked Sendable {
     public func upsertSpace(_ space: SharedSpace) {
         mutate([.spaces]) { s in
             if let i = s.spaces.firstIndex(where: { $0.id == space.id }) { s.spaces[i] = space } else { s.spaces.append(space) }
+        }
+    }
+
+    /// Cập nhật tên/linh vật/pin của "mình" trong mọi không gian.
+    public func updateMyProfile(deviceBattery: Double? = nil, now: Date = Date()) {
+        let snap = snapshot()
+        let name = snap.settings.displayName
+        let species = snap.settings.species
+        let battery = snap.settings.shareDeviceBattery ? deviceBattery.map { ($0 * 20).rounded() / 20 } : nil
+        let needsUpdate = snap.spaces.contains { space in
+            space.members.contains { m in
+                m.id == DemoData.meID && (m.displayName != name || m.species != species || (deviceBattery != nil && m.deviceBattery != battery))
+            }
+        }
+        guard needsUpdate else { return }
+        mutate([.spaces]) { s in
+            for i in s.spaces.indices {
+                if let m = s.spaces[i].members.firstIndex(where: { $0.id == DemoData.meID }) {
+                    s.spaces[i].members[m].displayName = name
+                    s.spaces[i].members[m].species = species
+                    if deviceBattery != nil { s.spaces[i].members[m].deviceBattery = battery }
+                    s.spaces[i].members[m].updatedAt = now
+                }
+            }
+        }
+    }
+
+    /// Xóa toàn bộ dữ liệu mẫu (không gian chưa đồng bộ, check-in, sự kiện mẫu).
+    public func removeDemoData() {
+        mutate([.checkIn, .events, .spaces, .vocab]) { s in
+            s.spaces.removeAll { $0.cloud == nil }
+            s.checkIns.removeAll { DemoData.isDemo($0.id) }
+            s.events.removeAll { DemoData.isDemo($0.id) }
+            s.learnedLog = s.learnedLog.filter { day, _ in s.reviewStates.values.contains { $0.lastReviewed.map { calendar.dayKey(for: $0) == day } ?? false } }
+            s.activeSpaceID = s.spaces.first?.id
         }
     }
 
@@ -285,7 +346,10 @@ public final class CozyRepository: @unchecked Sendable {
     }
 
     public func deleteWidgetConfig(id: UUID) {
-        mutate([.widgets]) { $0.widgetConfigs.removeAll { $0.id == id } }
+        mutate([.widgets]) { s in
+            s.widgetConfigs.removeAll { $0.id == id }
+            s.deletedIDs = (s.deletedIDs ?? [:]).merging([id.uuidString: Date()]) { _, new in new }
+        }
     }
 
     public func widgetConfig(id: UUID?) -> WidgetConfig? {

@@ -92,7 +92,10 @@ private struct MemberCard: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            MascotView(state: MascotEngine.resolve(species: member.species, mood: member.mood, weather: weather, date: Date()), size: 72)
+            AnimatedMascotView(
+                state: MascotEngine.resolve(species: member.species, mood: member.mood, weather: weather, date: Date()),
+                size: 72, reaction: [member.mood?.rawValue ?? ""] + member.foods.map(\.rawValue)
+            )
             Text(member.displayName).font(CozyFont.title(16)).foregroundStyle(Color.inkCoffee)
             Text(member.mood.map { "\($0.emoji) \($0.displayName)" } ?? "Chưa cập nhật")
                 .font(CozyFont.body(13, weight: .medium)).foregroundStyle(Color.inkCoffee)
@@ -204,7 +207,7 @@ private struct SharedEventsCard: View {
     var space: SharedSpace
 
     var body: some View {
-        let events = model.snapshot.events.filter { space.sharedEventIDs.contains($0.id) || $0.isShared }
+        let events = model.snapshot.events.filter { space.sharedEventIDs.contains($0.id) }
         VStack(alignment: .leading, spacing: 12) {
             CozySectionHeader(title: "Đếm ngược chung", symbol: "calendar.badge.clock", accent: .accentSky, trailing: "hiện trên Lock Screen cả nhóm")
             if events.isEmpty {
@@ -250,8 +253,16 @@ private struct InteractionFeed: View {
 }
 
 private struct InviteCard: View {
+    @Environment(AppModel.self) private var model
     var kind: SpaceKind
     var compact = false
+    @State private var invitation: ShareInvitation?
+    @State private var working = false
+    @State private var confirmLeave = false
+
+    private var cloudSpace: SharedSpace? {
+        model.snapshot.spaces.first { $0.kind == kind && $0.cloud != nil }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -261,12 +272,36 @@ private struct InviteCard: View {
             }
             Text("Gửi link mời qua iMessage hoặc AirDrop. Không cần đăng ký tài khoản: dữ liệu đồng bộ bằng iCloud của mỗi người.")
                 .font(.caption).foregroundStyle(Color.inkTaupe)
-            // Giai đoạn 2: tạo CKShare và mở UICloudSharingController.
-            ShareLink(item: URL(string: "https://www.icloud.com/share/cozydaily-demo")!, subject: Text("CozyDaily"), message: Text(kind == .couple ? "Vào Couple Space với mình nha 💞" : "Vào Squad Board của tụi mình nè 🎉")) {
-                Label("Mời qua iMessage / AirDrop", systemImage: "square.and.arrow.up")
+            if CloudConfig.isEnabled {
+                Button {
+                    working = true
+                    Task {
+                        invitation = await model.prepareInvitation(kind)
+                        working = false
+                    }
+                } label: {
+                    Label(working ? "Đang chuẩn bị…" : (cloudSpace == nil ? "Tạo & mời" : "Mời thêm / quản lý"), systemImage: "square.and.arrow.up")
+                }
+                .buttonStyle(CozyPillButtonStyle(tint: kind == .couple ? .accentPeach : .accentHoney, filled: false))
+                .disabled(working)
+                if cloudSpace != nil {
+                    Button("Rời không gian này", role: .destructive) { confirmLeave = true }
+                        .font(.caption)
+                }
+            } else {
+                Label("Đang xem dữ liệu mẫu. Mời bạn bè cần bản cài đã bật iCloud.", systemImage: "icloud.slash")
+                    .font(.caption).foregroundStyle(Color.inkTaupe)
             }
-            .buttonStyle(CozyPillButtonStyle(tint: kind == .couple ? .accentPeach : .accentHoney, filled: false))
+            if let error = model.cloudError {
+                Text(error).font(.caption).foregroundStyle(Color.accentPeach)
+            }
         }
         .cozyCard()
+        .sheet(item: $invitation) { CloudSharingView(invitation: $0) }
+        .confirmationDialog("Rời không gian? Nếu bạn là người tạo, không gian sẽ bị xóa cho mọi người.", isPresented: $confirmLeave, titleVisibility: .visible) {
+            Button("Rời / Xóa", role: .destructive) {
+                if let space = cloudSpace { Task { await model.leave(space) } }
+            }
+        }
     }
 }

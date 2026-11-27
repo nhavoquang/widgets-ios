@@ -60,6 +60,8 @@ public struct CozySnapshot: Codable, Hashable, Sendable {
     public var widgetConfigs: [WidgetConfig]
     public var weather: WeatherSnapshot?
     public var updatedAt: Date
+    /// ID (sự kiện, mẫu widget) đã xóa, để đồng bộ không làm chúng sống lại.
+    public var deletedIDs: [String: Date]?
 
     public init(
         settings: UserSettings = UserSettings(),

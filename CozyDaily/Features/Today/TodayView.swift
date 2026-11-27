@@ -6,12 +6,19 @@ struct TodayView: View {
     @Environment(AppModel.self) private var model
     @State private var showCheckIn = false
     @State private var showDecks = false
+    @State private var showSettings = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
                     HeroHeader()
+                    HStack {
+                        Spacer()
+                        Button { showSettings = true } label: { Label("Cài đặt", systemImage: "gearshape.fill") }
+                            .font(CozyFont.body(13, weight: .semibold))
+                            .foregroundStyle(Color.inkTaupe)
+                    }
                     VocabCard(showDecks: $showDecks)
                     CheckInBar(showCheckIn: $showCheckIn)
                     WeatherCard()
@@ -29,6 +36,7 @@ struct TodayView: View {
             .sheet(isPresented: $showCheckIn) {
                 CheckInSheet().presentationDetents([.large]).presentationCornerRadius(28)
             }
+            .sheet(isPresented: $showSettings) { SettingsSheet() }
             .sheet(isPresented: $showDecks) {
                 DeckPickerSheet().presentationDetents([.medium, .large])
             }
@@ -59,7 +67,10 @@ private struct HeroHeader: View {
                     .padding(.top, 2)
             }
             Spacer()
-            MascotView(state: model.mascot, size: 96)
+            AnimatedMascotView(
+                state: model.mascot, size: 96,
+                reaction: [model.latestCheckInToday?.mood.rawValue ?? ""] + (model.latestCheckInToday?.foods.map(\.rawValue) ?? [])
+            )
         }
         .padding(.top, 12)
     }
@@ -392,7 +403,7 @@ private struct WeatherCard: View {
             if let w = model.snapshot.weather {
                 HStack(alignment: .center) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(w.temperatureText).font(CozyFont.number(44)).foregroundStyle(Color.inkCoffee)
+                        Text(w.temperatureText).font(CozyFont.number(44)).foregroundStyle(Color.inkCoffee).cozyNumeric(Int(w.temperatureC.rounded()))
                         Label(w.condition.displayName, systemImage: w.condition.symbolName)
                             .symbolRenderingMode(.multicolor)
                             .font(CozyFont.body(14, weight: .semibold))

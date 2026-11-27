@@ -123,14 +123,18 @@ private struct VocabHome: View {
                             .lineLimit(2)
                         Text(w.phonetic).font(.system(size: 11, design: .monospaced)).foregroundStyle(data.theme.secondaryInk)
                     }
+                    .cozySwap(w.id)
+                    .invalidatableContent()
                     Spacer(minLength: 0)
                     if data.config.showMascot && family != .systemSmall {
-                        MascotView(state: data.mascot, size: 46, animated: false)
+                        WidgetMascot(state: data.mascot, size: 46)
                     }
                 }
                 Text(w.meaning)
                     .font(.system(size: 13, weight: .medium, design: .rounded))
                     .lineLimit(2)
+                    .cozySwap(w.id)
+                    .invalidatableContent()
                 if family == .systemLarge {
                     Text("“\(w.example)”")
                         .font(.system(size: 13, design: .serif).italic())
@@ -138,9 +142,9 @@ private struct VocabHome: View {
                         .padding(.top, 4)
                     Spacer()
                     HStack {
-                        Label("\(data.streak) ngày", systemImage: "flame.fill")
+                        Label("\(data.streak) ngày", systemImage: "flame.fill").cozyNumeric(data.streak)
                         Spacer()
-                        Label("\(data.dueCount) từ cần ôn", systemImage: "arrow.triangle.2.circlepath")
+                        Label("\(data.dueCount) từ cần ôn", systemImage: "arrow.triangle.2.circlepath").cozyNumeric(data.dueCount)
                     }
                     .font(.system(size: 12, weight: .semibold, design: .rounded))
                     .foregroundStyle(data.theme.secondaryInk)
@@ -151,7 +155,7 @@ private struct VocabHome: View {
                         Label(family == .systemSmall ? "Thuộc" : "Đã thuộc", systemImage: "checkmark")
                     }
                     .buttonStyle(WidgetPillStyle(tint: Color.accentSage, filled: true))
-                    Button(intent: SkipWordIntent()) {
+                    Button(intent: NextVocabIntent()) {
                         Label(family == .systemSmall ? "Đổi" : "Đổi từ", systemImage: "shuffle")
                     }
                     .buttonStyle(WidgetPillStyle(tint: Color.accentSage, filled: false))
@@ -164,6 +168,7 @@ private struct VocabHome: View {
 }
 
 struct WidgetPillStyle: ButtonStyle {
+    @Environment(\.widgetRenderingMode) private var renderingMode
     var tint: Color
     var filled: Bool
 
@@ -174,8 +179,8 @@ struct WidgetPillStyle: ButtonStyle {
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .frame(maxWidth: .infinity)
-            .foregroundStyle(filled ? .white : tint)
-            .background(Capsule().fill(filled ? tint : tint.opacity(0.15)))
+            .foregroundStyle(renderingMode == .fullColor ? (filled ? Color.white : tint) : Color.primary)
+            .background(Capsule().fill(renderingMode == .fullColor ? (filled ? tint : tint.opacity(0.15)) : Color.primary.opacity(filled ? 0.28 : 0.12)))
             .opacity(configuration.isPressed ? 0.7 : 1)
     }
 }
@@ -190,14 +195,18 @@ private struct MoodFoodHome: View {
         VStack(alignment: .leading, spacing: 6) {
             WidgetHeader(title: "Hôm nay thế nào?", symbol: "face.smiling", data: data)
             HStack(alignment: .center, spacing: 10) {
-                MascotView(state: data.mascot, size: family == .systemSmall ? 54 : 64, animated: false)
+                WidgetMascot(state: data.mascot, size: family == .systemSmall ? 54 : 64)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(data.checkIn.map { "\($0.mood.emoji) \($0.mood.displayName)" } ?? "Chưa check-in")
                         .font(data.config.font.font(size: 16, weight: .bold))
                     if let foods = data.checkIn?.foods, !foods.isEmpty {
-                        Text(foods.map(\.emoji).joined(separator: " ")).font(.system(size: 18))
+                        HStack(spacing: 3) {
+                            ForEach(foods.prefix(4)) { CozyAssetImage(asset: $0.asset, size: 20) }
+                        }
                     }
                 }
+                .cozySwap(data.checkIn?.id)
+                .invalidatableContent()
             }
             if let c = data.checkIn {
                 BatteryBar(value: c.socialBattery, tint: data.config.accent.color)
@@ -209,7 +218,7 @@ private struct MoodFoodHome: View {
             if family != .systemSmall {
                 HStack(spacing: 6) {
                     ForEach([MoodOption.happy, .chill, .tired, .missing], id: \.self) { m in
-                        Button(intent: quickMood(m)) { Text(m.mood.emoji).font(.system(size: 18)) }
+                        Button(intent: QuickCheckInIntent(mood: m)) { CozyAssetImage(asset: m.mood.asset, size: 20) }
                             .buttonStyle(.plain)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 4)
@@ -217,14 +226,18 @@ private struct MoodFoodHome: View {
                     }
                 }
             }
+            if family == .systemLarge {
+                HStack(spacing: 6) {
+                    ForEach([FoodOption.pho, .comTam, .banhMi, .milkTea, .coffee], id: \.self) { f in
+                        Button(intent: QuickCheckInIntent(food: f)) { CozyAssetImage(asset: f.food.asset, size: 22) }
+                            .buttonStyle(.plain)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 4)
+                            .background(Capsule().fill(Color.accentHoney.opacity(0.18)))
+                    }
+                }
+            }
         }
-    }
-
-    func quickMood(_ m: MoodOption) -> LogMoodIntent {
-        var i = LogMoodIntent()
-        i.mood = m
-        i.source = .widget
-        return i
     }
 }
 
@@ -242,7 +255,7 @@ struct BatteryBar: View {
                 }
             }
             .frame(height: 6)
-            Text("\(value)%").font(.system(size: 10, weight: .bold, design: .rounded)).monospacedDigit()
+            Text("\(value)%").font(.system(size: 10, weight: .bold, design: .rounded)).monospacedDigit().cozyNumeric(value)
         }
         .accessibilityLabel("Pin xã hội \(value) phần trăm")
     }
@@ -270,9 +283,11 @@ private struct CoupleHome: View {
                 HStack {
                     WidgetHeader(title: data.couple?.name ?? "Couple", symbol: "heart.fill", data: data)
                     if let a = data.couple?.anniversary {
-                        Text("\(EventCounter().status(of: CozyEvent(title: "", kind: .countUp(since: a)), now: data.date).days) ngày 💞")
+                        let days = EventCounter().status(of: CozyEvent(title: "", kind: .countUp(since: a)), now: data.date).days
+                        Text("\(days) ngày 💞")
                             .font(.system(size: 11, weight: .heavy, design: .rounded))
                             .foregroundStyle(Color.accentPeach)
+                            .cozyNumeric(days)
                     }
                 }
                 HStack(spacing: 8) {
@@ -307,9 +322,9 @@ private struct MemberColumn: View {
 
     var body: some View {
         VStack(spacing: 3) {
-            MascotView(
+            WidgetMascot(
                 state: MascotEngine.resolve(species: member.species, mood: member.mood, weather: member.id == DemoData.meID ? data.weather : nil, date: data.date),
-                size: compact ? 40 : 50, animated: false
+                size: compact ? 40 : 50
             )
             Text(member.displayName).font(data.config.font.font(size: 12, weight: .bold)).lineLimit(1)
             Text(member.mood.map { "\($0.emoji) \($0.displayName)" } ?? "–")
@@ -384,7 +399,7 @@ private struct EventHome: View {
                     Text(s.headline)
                         .font(.system(size: family == .systemSmall ? 44 : 52, weight: .heavy, design: .rounded))
                         .minimumScaleFactor(0.5)
-                        .contentTransition(.numericText())
+                        .cozyNumeric(s.days)
                     Text(s.caption).font(.system(size: 12, weight: .semibold, design: .rounded)).foregroundStyle(data.theme.secondaryInk)
                 }
                 Text("\(e.emoji) \(e.title)").font(data.config.font.font(size: 15, weight: .bold)).lineLimit(2)
@@ -419,16 +434,16 @@ private struct WeatherHome: View {
                 WidgetHeader(title: w.placeName, symbol: "location.fill", data: data)
                 HStack {
                     VStack(alignment: .leading, spacing: 0) {
-                        Text(w.temperatureText).font(.system(size: 40, weight: .heavy, design: .rounded))
+                        Text(w.temperatureText).font(.system(size: 40, weight: .heavy, design: .rounded)).cozyNumeric(Int(w.temperatureC.rounded()))
                         Label(w.condition.displayName, systemImage: w.condition.symbolName)
                             .font(.system(size: 12, weight: .semibold))
                             .symbolRenderingMode(.multicolor)
                     }
                     Spacer(minLength: 0)
-                    if data.config.showMascot { MascotView(state: data.mascot, size: family == .systemSmall ? 44 : 60, animated: false) }
+                    if data.config.showMascot { WidgetMascot(state: data.mascot, size: family == .systemSmall ? 44 : 60) }
                 }
                 Spacer(minLength: 0)
-                Text("C:\(Int(w.highC))° T:\(Int(w.lowC))°").font(.system(size: 11, weight: .medium)).foregroundStyle(data.theme.secondaryInk)
+                Text("C:\(Int(w.highC))° T:\(Int(w.lowC))°").cozyNumeric(Int(w.highC + w.lowC)).font(.system(size: 11, weight: .medium)).foregroundStyle(data.theme.secondaryInk)
                 if family != .systemSmall {
                     Text(WeatherSuggestion.outfit(for: w)).font(data.config.font.font(size: 12, weight: .medium)).lineLimit(1)
                     Text("Gợi ý: " + WeatherSuggestion.foods(for: w).map { "\($0.emoji) \($0.displayName)" }.joined(separator: " · "))
@@ -456,13 +471,13 @@ private struct StreakHome: View {
                     .stroke(Color.accentSage, style: StrokeStyle(lineWidth: 10, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                 VStack(spacing: 0) {
-                    Text("\(data.streak)").font(.system(size: 30, weight: .heavy, design: .rounded))
+                    Text("\(data.streak)").font(.system(size: 30, weight: .heavy, design: .rounded)).cozyNumeric(data.streak)
                     Text("ngày 🔥").font(.system(size: 11, weight: .semibold))
                 }
             }
             .padding(4)
             if family != .systemSmall {
-                Text("\(data.dueCount) từ cần ôn hôm nay").font(.system(size: 12, weight: .medium)).foregroundStyle(data.theme.secondaryInk)
+                Text("\(data.dueCount) từ cần ôn hôm nay").cozyNumeric(data.dueCount).font(.system(size: 12, weight: .medium)).foregroundStyle(data.theme.secondaryInk)
             }
         }
     }
@@ -474,7 +489,7 @@ private struct MascotHome: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            MascotView(state: data.mascot, size: family == .systemSmall ? 86 : 110, animated: false)
+            WidgetMascot(state: data.mascot, size: family == .systemSmall ? 86 : 110)
             Text(data.mascot.caption)
                 .font(data.config.font.font(size: 12, weight: .semibold))
                 .multilineTextAlignment(.center)
@@ -492,11 +507,11 @@ private struct ComboHome: View {
         if family == .systemSmall {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    MascotView(state: data.mascot, size: 44, animated: false)
+                    WidgetMascot(state: data.mascot, size: 44)
                     Spacer()
                     if let w = data.weather {
                         VStack(alignment: .trailing) {
-                            Text(w.temperatureText).font(.system(size: 22, weight: .heavy, design: .rounded))
+                            Text(w.temperatureText).font(.system(size: 22, weight: .heavy, design: .rounded)).cozyNumeric(Int(w.temperatureC.rounded()))
                             Image(systemName: w.condition.symbolName).symbolRenderingMode(.multicolor)
                         }
                     }
@@ -512,7 +527,7 @@ private struct ComboHome: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(DayPart(date: data.date).greeting).font(data.config.font.font(size: 14, weight: .bold))
                     Text("\(data.lunar.shortText) ÂL · \(data.lunar.yearName)").font(.system(size: 11)).foregroundStyle(data.theme.secondaryInk)
-                    MascotView(state: data.mascot, size: 58, animated: false)
+                    WidgetMascot(state: data.mascot, size: 58)
                     if let c = data.checkIn {
                         Text("\(c.mood.emoji) \(c.foods.map(\.emoji).joined())").font(.system(size: 15))
                     }
@@ -556,17 +571,24 @@ private struct InlineAccessory: View {
     var data: CozyWidgetData
 
     var body: some View {
+        // Inline chỉ nhận 1 ảnh + 1 dòng chữ, hệ thống tự tô màu.
         switch data.config.content {
         case .vocab:
-            Text("📖 \(data.word?.word ?? "CozyDaily")")
+            Label(data.word?.word ?? "CozyDaily", systemImage: "character.book.closed.fill")
         case .couple:
-            Text("💞 \(data.partner.map { "\($0.displayName) \($0.mood?.emoji ?? "")" } ?? "Couple")")
+            Label(data.partner.map { "\($0.displayName): \($0.mood?.displayName ?? "…")" } ?? "Couple",
+                  systemImage: data.partner?.mood?.monochromeSymbolName ?? "heart.fill")
         case .event:
-            Text("\(data.event?.emoji ?? "📅") \(data.eventStatus?.sentence ?? "")")
+            Label(data.eventStatus.map { "\(data.event?.title ?? ""): \($0.sentence)" } ?? "Sự kiện",
+                  systemImage: data.event?.kind.symbolName ?? "calendar")
+                .contentTransition(.numericText())
         case .weather:
-            Text("\(data.weather?.temperatureText ?? "–") \(data.weather?.condition.displayName ?? "")")
+            Label("\(data.weather?.temperatureText ?? "–") \(data.weather?.condition.displayName ?? "")",
+                  systemImage: data.weather?.condition.asset.monochromeSymbolName ?? "cloud.sun.fill")
+                .contentTransition(.numericText())
         default:
-            Text("\(data.checkIn?.mood.emoji ?? "🐾") \(data.lunar.shortText) ÂL · 🔥\(data.streak)")
+            Label("\(data.lunar.shortText) ÂL · \(data.streak) ngày", systemImage: data.checkIn?.mood.monochromeSymbolName ?? "pawprint.fill")
+                .contentTransition(.numericText())
         }
     }
 }
@@ -580,41 +602,54 @@ private struct CircularAccessory: View {
             Gauge(value: Double(min(data.streak, 30)), in: 0...30) {
                 Image(systemName: "flame.fill")
             } currentValueLabel: {
-                Text("\(data.streak)")
+                Text("\(data.streak)").cozyNumeric(data.streak)
             }
             .gaugeStyle(.accessoryCircularCapacity)
             .widgetAccentable()
         case .event:
             ZStack {
                 AccessoryWidgetBackground()
-                VStack(spacing: -2) {
-                    Text(data.eventStatus?.headline ?? "–").font(.system(size: 20, weight: .heavy, design: .rounded)).minimumScaleFactor(0.5)
-                    Text(data.event?.emoji ?? "📅").font(.system(size: 11))
+                VStack(spacing: -1) {
+                    Text(data.eventStatus.map { $0.direction == .today ? "0" : $0.headline } ?? "–")
+                        .font(.system(size: 20, weight: .heavy, design: .rounded)).minimumScaleFactor(0.5)
+                        .cozyNumeric(data.eventStatus?.days ?? 0)
+                    Image(systemName: data.event?.kind.symbolName ?? "calendar").font(.system(size: 10, weight: .bold)).widgetAccentable()
                 }
             }
         case .couple:
             ZStack {
                 AccessoryWidgetBackground()
-                VStack(spacing: -2) {
+                VStack(spacing: -1) {
                     Image(systemName: "heart.fill").font(.system(size: 10)).widgetAccentable()
-                    Text(anniversaryDays).font(.system(size: 16, weight: .heavy, design: .rounded)).minimumScaleFactor(0.5)
+                    Text(anniversaryDays.map(String.init) ?? "–").font(.system(size: 16, weight: .heavy, design: .rounded)).minimumScaleFactor(0.5)
+                        .cozyNumeric(anniversaryDays ?? 0)
+                }
+            }
+        case .weather:
+            ZStack {
+                AccessoryWidgetBackground()
+                VStack(spacing: 0) {
+                    Image(systemName: data.weather?.condition.asset.monochromeSymbolName ?? "cloud.sun.fill").font(.system(size: 14)).widgetAccentable()
+                    Text(data.weather?.temperatureText ?? "–").font(.system(size: 16, weight: .heavy, design: .rounded))
+                        .cozyNumeric(Int(data.weather?.temperatureC.rounded() ?? 0))
                 }
             }
         default:
             ZStack {
                 AccessoryWidgetBackground()
-                if data.config.showMascot {
-                    Text(data.checkIn?.mood.emoji ?? data.mascot.species.emoji).font(.system(size: 26))
+                if let mood = data.checkIn?.mood, data.config.content == .moodFood {
+                    CozyAssetImage(asset: mood.asset, size: 30)
                 } else {
                     MascotGlyph(state: data.mascot)
                 }
             }
+            .cozySwap(data.checkIn?.id)
         }
     }
 
-    var anniversaryDays: String {
-        guard let a = data.couple?.anniversary else { return "–" }
-        return "\(EventCounter().status(of: CozyEvent(title: "", kind: .countUp(since: a)), now: data.date).days)"
+    var anniversaryDays: Int? {
+        guard let a = data.couple?.anniversary else { return nil }
+        return EventCounter().status(of: CozyEvent(title: "", kind: .countUp(since: a)), now: data.date).days
     }
 }
 
@@ -638,9 +673,8 @@ private struct RectangularAccessory: View {
                 }
             case .couple:
                 HStack(spacing: 4) {
-                    Image(systemName: "heart.fill").widgetAccentable()
+                    Image(systemName: data.partner?.mood?.monochromeSymbolName ?? "heart.fill").widgetAccentable()
                     Text(data.partner?.displayName ?? "Couple").font(.system(size: 14, weight: .bold))
-                    Text(data.partner?.mood?.emoji ?? "")
                 }
                 Text(data.partner?.note.isEmpty == false ? data.partner!.note : (data.partner?.mood?.displayName ?? "")).font(.system(size: 12)).lineLimit(1)
                 Text(data.partner?.weatherLine ?? "").font(.system(size: 11)).lineLimit(1)
@@ -648,12 +682,13 @@ private struct RectangularAccessory: View {
                 Label(data.event?.title ?? "Sự kiện", systemImage: data.event?.kind.symbolName ?? "calendar")
                     .font(.system(size: 13, weight: .bold)).widgetAccentable()
                 Text(data.eventStatus?.sentence ?? "").font(.system(size: 18, weight: .heavy, design: .rounded))
+                    .cozyNumeric(data.eventStatus?.days ?? 0)
             case .moodFood, .mascot:
                 HStack(spacing: 4) {
-                    Text(data.checkIn?.mood.emoji ?? "🐾")
+                    Image(systemName: data.checkIn?.mood.monochromeSymbolName ?? "pawprint.fill").widgetAccentable()
                     Text(data.checkIn?.mood.displayName ?? "Chưa check-in").font(.system(size: 14, weight: .bold)).widgetAccentable()
                 }
-                Text(data.checkIn?.foods.map { "\($0.emoji) \($0.displayName)" }.joined(separator: ", ") ?? "").font(.system(size: 12)).lineLimit(1)
+                Text(data.checkIn?.foods.map(\.displayName).joined(separator: ", ") ?? "").font(.system(size: 12)).lineLimit(1)
                 if let s = data.checkIn?.socialBattery {
                     Gauge(value: Double(s), in: 0...100) { Text("Pin") }.gaugeStyle(.accessoryLinearCapacity)
                 }
@@ -665,6 +700,7 @@ private struct RectangularAccessory: View {
                 }
                 if let w = data.weather {
                     Text("\(w.temperatureText) \(w.condition.displayName)").font(.system(size: 12))
+                        .cozyNumeric(Int(w.temperatureC.rounded()))
                 }
                 if let e = data.event, let s = data.eventStatus {
                     Text("\(e.emoji) \(s.sentence)").font(.system(size: 12)).lineLimit(1)

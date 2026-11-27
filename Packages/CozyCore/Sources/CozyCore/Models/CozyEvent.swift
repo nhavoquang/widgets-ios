@@ -45,6 +45,8 @@ public struct CozyEvent: Codable, Hashable, Sendable, Identifiable {
     /// Nhập từ Apple Calendar (EventKit) — chỉ đọc.
     public var externalIdentifier: String?
     public var createdAt: Date
+    /// Lần sửa cuối, dùng để giải quyết xung đột khi đồng bộ.
+    public var modifiedAt: Date?
 
     public init(
         id: UUID = UUID(),

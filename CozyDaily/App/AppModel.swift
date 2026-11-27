@@ -1,10 +1,12 @@
 import SwiftUI
+import UIKit
 import Observation
 import CozyCore
 import WidgetKit
 
 /// Trạng thái toàn app. Mọi thay đổi đi qua `CozyRepository` (ghi App Group ngay),
 /// rồi reload widget để Lock/Home Screen phản hồi tức thì.
+@MainActor
 @Observable
 final class AppModel {
     let repository: CozyRepository
@@ -15,14 +17,14 @@ final class AppModel {
     let weather: CozyWeatherService
     let speech = SpeechService()
     let calendarImport = CalendarImportService()
-    let sync: CloudSyncService
+    private let syncTrigger = CloudSyncTrigger()
+    private(set) var cloudError: String?
 
     init(repository: CozyRepository = CozyShared.repository) {
         self.repository = repository
         self.snapshot = repository.snapshot(reload: true)
         self.weather = CozyWeatherService(repository: repository)
-        self.sync = CloudSyncService()
-        repository.syncEngine = sync
+        repository.syncEngine = syncTrigger
         self.currentWord = repository.currentWord()
     }
 
@@ -35,14 +37,54 @@ final class AppModel {
     }
 
     private func commit() {
-        refresh()
-        WidgetCenter.shared.reloadAllTimelines()
+        withAnimation(CozyMotion.spring) { refresh() }
+        CozyShared.didChange()
     }
 
     func onForeground() async {
         refresh()
+        UIDevice.current.isBatteryMonitoringEnabled = true
+        let level = UIDevice.current.batteryLevel
+        repository.updateMyProfile(deviceBattery: level >= 0 ? Double(level) : nil)
         await weather.refreshIfNeeded()
+        await syncCloud()
+        commit()
+    }
+
+    func syncCloud() async {
+        do {
+            try await CloudSync.shared.sync()
+            cloudError = nil
+        } catch {
+            cloudError = error.localizedDescription
+        }
         refresh()
+    }
+
+    func prepareInvitation(_ kind: SpaceKind) async -> ShareInvitation? {
+        do {
+            let (share, container) = try await CloudSync.shared.prepareShare(kind: kind)
+            cloudError = nil
+            commit()
+            return ShareInvitation(share: share, container: container)
+        } catch {
+            cloudError = error.localizedDescription
+            return nil
+        }
+    }
+
+    func leave(_ space: SharedSpace) async {
+        do {
+            try await CloudSync.shared.leave(spaceID: space.id)
+        } catch {
+            cloudError = error.localizedDescription
+        }
+        commit()
+    }
+
+    func removeDemoData() {
+        repository.removeDemoData()
+        commit()
     }
 
     // MARK: - Derived
@@ -52,8 +94,8 @@ final class AppModel {
     var streak: Int { CozyRepository.streak(log: snapshot.learnedLog, now: now, calendar: repository.calendar) }
     var dueCount: Int { SpacedRepetition(calendar: repository.calendar).dueWords(states: snapshot.reviewStates, now: now).count }
     var learnedToday: Int { snapshot.learnedLog[repository.calendar.dayKey(for: now)] ?? 0 }
-    var couple: SharedSpace? { snapshot.spaces.first { $0.kind == .couple } }
-    var squad: SharedSpace? { snapshot.spaces.first { $0.kind == .squad } }
+    var couple: SharedSpace? { snapshot.spaces.preferred(.couple) }
+    var squad: SharedSpace? { snapshot.spaces.preferred(.squad) }
     var lunarToday: LunarDate { VietnameseLunarCalendar.lunarDate(from: now, calendar: repository.calendar) }
 
     var mascot: MascotState {
@@ -107,14 +149,13 @@ final class AppModel {
 
     func checkIn(mood: Mood, foods: [FoodSticker], battery: Int, note: String) {
         repository.checkIn(mood: mood, foods: foods, socialBattery: battery, note: note, now: Date())
-        Haptics.success()
         commit()
     }
 
     // MARK: - Events
 
-    func save(_ event: CozyEvent) {
-        repository.upsertEvent(event)
+    func save(_ event: CozyEvent, sharedWith spaceIDs: Set<UUID>) {
+        repository.upsertEvent(event, sharedWith: spaceIDs)
         commit()
     }
 
@@ -148,6 +189,7 @@ final class AppModel {
     func setAnniversary(_ date: Date) {
         guard var c = couple else { return }
         c.anniversary = date
+        c.modifiedAt = Date()
         repository.upsertSpace(c)
         commit()
     }
@@ -166,6 +208,7 @@ final class AppModel {
 
     func updateSettings(_ body: (inout UserSettings) -> Void) {
         repository.updateSettings(body)
+        repository.updateMyProfile()
         commit()
     }
 

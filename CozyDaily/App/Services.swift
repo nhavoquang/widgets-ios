@@ -10,6 +10,7 @@ import WeatherKit
 
 // MARK: - Haptics
 
+@MainActor
 enum Haptics {
     static func tap() { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
     static func success() { UINotificationFeedbackGenerator().notificationOccurred(.success) }
@@ -23,6 +24,7 @@ enum Haptics {
 
 // MARK: - Phát âm offline
 
+@MainActor
 final class SpeechService {
     private let synth = AVSpeechSynthesizer()
 
@@ -38,6 +40,7 @@ final class SpeechService {
 // MARK: - WeatherKit + cache theo vùng
 
 /// Chỉ Main App gọi WeatherKit. Widget đọc snapshot trong App Group.
+@MainActor
 final class CozyWeatherService: NSObject, CLLocationManagerDelegate {
     private let repository: CozyRepository
     private let policy = WeatherCachePolicy()
@@ -119,6 +122,7 @@ final class CozyWeatherService: NSObject, CLLocationManagerDelegate {
             return nil
         default:
             if let l = manager.location, Date().timeIntervalSince(l.timestamp) < 30 * 60 { return l }
+            guard locationContinuation == nil else { return manager.location }
             return await withCheckedContinuation { cont in
                 locationContinuation = cont
                 manager.requestLocation()
@@ -126,25 +130,31 @@ final class CozyWeatherService: NSObject, CLLocationManagerDelegate {
         }
     }
 
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        locationContinuation?.resume(returning: locations.last)
+    private func finishLocation(_ location: CLLocation?) {
+        locationContinuation?.resume(returning: location)
         locationContinuation = nil
     }
 
-    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        locationContinuation?.resume(returning: nil)
-        locationContinuation = nil
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        let last = locations.last
+        Task { @MainActor in self.finishLocation(last) }
     }
 
-    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        if manager.authorizationStatus == .authorizedWhenInUse || manager.authorizationStatus == .authorizedAlways {
-            Task { await refreshIfNeeded() }
+    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        Task { @MainActor in self.finishLocation(nil) }
+    }
+
+    nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        let status = manager.authorizationStatus
+        if status == .authorizedWhenInUse || status == .authorizedAlways {
+            Task { @MainActor in await self.refreshIfNeeded() }
         }
     }
 }
 
 // MARK: - Apple Calendar (EventKit)
 
+@MainActor
 final class CalendarImportService {
     private let store = EKEventStore()
 
@@ -176,19 +186,5 @@ final class CalendarImportService {
         let hex = String(format: "%016llx%016llx", h1, h2)
         let c = Array(hex)
         return "\(String(c[0..<8]))-\(String(c[8..<12]))-\(String(c[12..<16]))-\(String(c[16..<20]))-\(String(c[20..<32]))"
-    }
-}
-
-// MARK: - CloudKit (giai đoạn 2)
-
-/// Điểm đồng bộ CloudKit. Giai đoạn 1 chỉ ghi nhận thay đổi; giai đoạn 2 sẽ:
-/// - Lưu dữ liệu cá nhân vào Private DB (zone "CozyZone").
-/// - Tạo `CKShare` cho zone Couple/Squad, mời qua `UICloudSharingController` (iMessage/AirDrop).
-/// - Đăng ký `CKDatabaseSubscription` trên Shared DB để nhận Silent Push và reload widget.
-final class CloudSyncService: SyncEngine, @unchecked Sendable {
-    private(set) var pendingChanges: Set<CozyRepository.Change> = []
-
-    func snapshotDidChange(_ snapshot: CozySnapshot, changes: Set<CozyRepository.Change>) {
-        pendingChanges.formUnion(changes)
     }
 }

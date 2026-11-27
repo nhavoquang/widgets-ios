@@ -5,34 +5,43 @@ import WidgetKit
 /// Kho dùng chung cho App, Widget và Intents (cùng trỏ vào App Group).
 enum CozyShared {
     static let repository = CozyRepository.shared()
+    static let store = SharedWidgetStore(repository: repository)
 
-    static func reloadWidgets() {
+    /// Gọi sau mỗi thay đổi: cập nhật UserDefaults dùng chung và vẽ lại widget.
+    static func didChange() {
+        store.publishQuickState()
         WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    /// Dùng trong AppIntent: cập nhật widget rồi đẩy lên iCloud (nếu bật).
+    static func finishIntent() async {
+        didChange()
+        try? await CloudSync.shared.sync()
     }
 }
 
 // MARK: - Từ vựng (nút bấm trực tiếp trên Home Screen Widget)
 
 struct MarkWordLearnedIntent: AppIntent {
-    static var title: LocalizedStringResource = "Đã thuộc từ này"
-    static var description = IntentDescription("Đánh dấu từ hôm nay là đã thuộc và chuyển sang từ kế tiếp.")
-    static var isDiscoverable: Bool = false
+    static let title: LocalizedStringResource = "Đã thuộc từ này"
+    static let description = IntentDescription("Đánh dấu từ hôm nay là đã thuộc và chuyển sang từ kế tiếp.")
+    static let isDiscoverable: Bool = false
 
     func perform() async throws -> some IntentResult {
         CozyShared.repository.markCurrentWordLearned()
-        CozyShared.reloadWidgets()
+        await CozyShared.finishIntent()
         return .result()
     }
 }
 
-struct SkipWordIntent: AppIntent {
-    static var title: LocalizedStringResource = "Đổi từ khác"
-    static var description = IntentDescription("Bỏ qua từ hiện tại, hiện một từ khác.")
-    static var isDiscoverable: Bool = false
+struct NextVocabIntent: AppIntent {
+    static let title: LocalizedStringResource = "Đổi từ khác"
+    static let description = IntentDescription("Bỏ qua từ hiện tại, hiện một từ khác.")
+    static let isDiscoverable: Bool = false
 
     func perform() async throws -> some IntentResult {
         CozyShared.repository.skipCurrentWord()
-        CozyShared.reloadWidgets()
+        await CozyShared.finishIntent()
         return .result()
     }
 }
@@ -42,8 +51,8 @@ struct SkipWordIntent: AppIntent {
 enum MoodOption: String, AppEnum {
     case happy, chill, sleepy, excited, tired, missing, busy
 
-    static var typeDisplayRepresentation: TypeDisplayRepresentation = "Cảm xúc"
-    static var caseDisplayRepresentations: [MoodOption: DisplayRepresentation] = [
+    static let typeDisplayRepresentation: TypeDisplayRepresentation = "Cảm xúc"
+    static let caseDisplayRepresentations: [MoodOption: DisplayRepresentation] = [
         .happy: "😊 Vui vẻ",
         .chill: "😌 Chill",
         .sleepy: "😴 Buồn ngủ",
@@ -56,35 +65,72 @@ enum MoodOption: String, AppEnum {
     var mood: Mood { Mood(rawValue: rawValue)! }
 }
 
-struct LogMoodIntent: AppIntent {
-    static var title: LocalizedStringResource = "Cập nhật mood CozyDaily"
-    static var description = IntentDescription("Ghi nhanh cảm xúc hiện tại. Dùng trong Phím tắt, Tập trung hoặc sau khi tập luyện trên Apple Watch.")
+enum FoodOption: String, AppEnum {
+    case pho, bunBo, comTam, banhMi, milkTea, coffee, sushi, pizza, hotpot, salad, noodles, dessert
 
-    @Parameter(title: "Cảm xúc", default: .chill)
-    var mood: MoodOption
+    static let typeDisplayRepresentation: TypeDisplayRepresentation = "Món ăn"
+    static let caseDisplayRepresentations: [FoodOption: DisplayRepresentation] = [
+        .pho: "🍜 Phở",
+        .bunBo: "🌶️ Bún bò",
+        .comTam: "🍚 Cơm tấm",
+        .banhMi: "🥖 Bánh mì",
+        .milkTea: "🧋 Trà sữa",
+        .coffee: "☕️ Cà phê",
+        .sushi: "🍣 Sushi",
+        .pizza: "🍕 Pizza",
+        .hotpot: "🍲 Lẩu",
+        .salad: "🥗 Salad",
+        .noodles: "🍝 Mì",
+        .dessert: "🍮 Chè/Bánh ngọt",
+    ]
+
+    var food: FoodSticker { FoodSticker(rawValue: rawValue)! }
+}
+
+enum CheckInSourceOption: String, AppEnum {
+    case shortcut, focus, workout, widget
+
+    static let typeDisplayRepresentation: TypeDisplayRepresentation = "Nguồn"
+    static let caseDisplayRepresentations: [CheckInSourceOption: DisplayRepresentation] = [
+        .shortcut: "Phím tắt",
+        .focus: "Chế độ Tập trung",
+        .workout: "Hoàn thành bài tập",
+        .widget: "Widget",
+    ]
+}
+
+struct QuickCheckInIntent: AppIntent {
+    static let title: LocalizedStringResource = "Check-in nhanh CozyDaily"
+    static let description = IntentDescription("Ghi nhanh cảm xúc và món ăn. Dùng trên widget, Phím tắt, Tập trung hoặc sau khi tập trên Apple Watch.")
+
+    @Parameter(title: "Cảm xúc")
+    var mood: MoodOption?
+
+    @Parameter(title: "Món ăn")
+    var food: FoodOption?
 
     @Parameter(title: "Nguồn", default: .shortcut)
-    var source: SourceOption
+    var source: CheckInSourceOption
 
-    enum SourceOption: String, AppEnum {
-        case shortcut, focus, workout, widget
-        static var typeDisplayRepresentation: TypeDisplayRepresentation = "Nguồn"
-        static var caseDisplayRepresentations: [SourceOption: DisplayRepresentation] = [
-            .shortcut: "Phím tắt",
-            .focus: "Chế độ Tập trung",
-            .workout: "Hoàn thành bài tập",
-            .widget: "Widget",
-        ]
+    init() {}
+
+    init(mood: MoodOption? = nil, food: FoodOption? = nil, source: CheckInSourceOption = .widget) {
+        self.mood = mood
+        self.food = food
+        self.source = source
     }
 
     static var parameterSummary: some ParameterSummary {
-        Summary("Đặt mood thành \(\.$mood)")
+        Summary("Check-in mood \(\.$mood) món \(\.$food)")
     }
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        CozyShared.repository.quickMood(mood.mood, source: CheckIn.Source(rawValue: source.rawValue) ?? .shortcut)
-        CozyShared.reloadWidgets()
-        return .result(dialog: "Đã cập nhật mood: \(mood.mood.emoji) \(mood.mood.displayName)")
+        let entry = CozyShared.repository.quickCheckIn(
+            mood: mood?.mood, food: food?.food,
+            source: CheckIn.Source(rawValue: source.rawValue) ?? .shortcut
+        )
+        await CozyShared.finishIntent()
+        return .result(dialog: "Đã check-in: \(entry.mood.emoji) \(entry.mood.displayName)")
     }
 }
 
@@ -93,8 +139,8 @@ struct LogMoodIntent: AppIntent {
 enum PingOption: String, AppEnum {
     case ateYet, missYou, craveMilkTea, goodNight, goodMorning, hugs, callMe
 
-    static var typeDisplayRepresentation: TypeDisplayRepresentation = "Quick Ping"
-    static var caseDisplayRepresentations: [PingOption: DisplayRepresentation] = [
+    static let typeDisplayRepresentation: TypeDisplayRepresentation = "Quick Ping"
+    static let caseDisplayRepresentations: [PingOption: DisplayRepresentation] = [
         .ateYet: "🍚 Ăn cơm chưa?",
         .missYou: "🥺 Đang nhớ nè",
         .craveMilkTea: "🧋 Thèm trà sữa",
@@ -108,8 +154,8 @@ enum PingOption: String, AppEnum {
 }
 
 struct SendPingIntent: AppIntent {
-    static var title: LocalizedStringResource = "Gửi Quick Ping"
-    static var description = IntentDescription("Gửi lời nhắn nhanh cho người yêu.")
+    static let title: LocalizedStringResource = "Gửi Quick Ping"
+    static let description = IntentDescription("Gửi lời nhắn nhanh cho người yêu.")
 
     @Parameter(title: "Lời nhắn", default: .missYou)
     var ping: PingOption
@@ -122,7 +168,7 @@ struct SendPingIntent: AppIntent {
         if let space = repo.space(kind: .couple) {
             repo.send(.ping(ping.ping), in: space.id, to: space.partner(of: DemoData.meID)?.id)
         }
-        CozyShared.reloadWidgets()
+        await CozyShared.finishIntent()
         return .result()
     }
 }
@@ -130,7 +176,7 @@ struct SendPingIntent: AppIntent {
 // MARK: - Chọn cấu hình từ Xưởng Widget
 
 struct StudioWidgetEntity: AppEntity {
-    static var typeDisplayRepresentation: TypeDisplayRepresentation = "Mẫu widget"
+    static let typeDisplayRepresentation: TypeDisplayRepresentation = "Mẫu widget"
     static var defaultQuery = StudioWidgetQuery()
 
     var id: UUID
@@ -165,8 +211,8 @@ struct StudioWidgetQuery: EntityQuery {
 }
 
 struct SelectStudioWidgetIntent: WidgetConfigurationIntent {
-    static var title: LocalizedStringResource = "Chọn mẫu từ Xưởng Widget"
-    static var description = IntentDescription("Hiển thị một mẫu widget bạn đã thiết kế trong tab Xưởng Widget.")
+    static let title: LocalizedStringResource = "Chọn mẫu từ Xưởng Widget"
+    static let description = IntentDescription("Hiển thị một mẫu widget bạn đã thiết kế trong tab Xưởng Widget.")
 
     @Parameter(title: "Mẫu widget")
     var design: StudioWidgetEntity?
