@@ -3,6 +3,10 @@ name: iOS build
 on:
   push:
   pull_request:
+  workflow_dispatch:
+
+env:
+  COZY_BUNDLE_PREFIX: ${{ vars.COZY_BUNDLE_PREFIX || 'com.cozydaily' }}
 
 jobs:
   core-tests:
@@ -10,9 +14,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Test CozyCore
-        run: swift test --package-path Packages/CozyCore
+        run: |
+          set -o pipefail
+          if ! swift test --package-path Packages/CozyCore 2>&1 | tee test.log; then
+            grep -E "error:" test.log | sort -u | head -40 | while IFS= read -r l; do echo "::error::${l#"$GITHUB_WORKSPACE"/}"; done
+            exit 1
+          fi
 
-  app-build:
+  # IPA chưa ký: cài bằng Sideloadly / AltStore (công cụ này tự ký lại bằng Apple ID của bạn).
+  unsigned-ipa:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
@@ -20,10 +30,71 @@ jobs:
         run: brew install xcodegen
       - name: Generate project
         run: xcodegen generate
-      - name: Build app + widgets (simulator, unsigned)
+      - name: Archive (device, unsigned)
         run: |
-          xcodebuild build \
-            -project CozyDaily.xcodeproj \
-            -scheme CozyDaily \
-            -destination 'generic/platform=iOS Simulator' \
+          bash ci/xcb.sh archive \
+            -project CozyDaily.xcodeproj -scheme CozyDaily -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath build/CozyDaily.xcarchive \
+            COZY_BUNDLE_PREFIX="$COZY_BUNDLE_PREFIX" COZY_CLOUD_ENABLED=NO \
+            CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
             CODE_SIGNING_ALLOWED=NO
+      - name: Package IPA
+        run: |
+          mkdir -p Payload
+          cp -R build/CozyDaily.xcarchive/Products/Applications/CozyDaily.app Payload/
+          sed "s/group.com.cozydaily.shared/group.${COZY_BUNDLE_PREFIX}.shared/" ci/sideload-app.entitlements > build/sideload.entitlements
+          # Ký ad-hoc chỉ để nhúng quyền App Group cho công cụ sideload đọc được.
+          codesign --force --sign - --entitlements build/sideload.entitlements Payload/CozyDaily.app/PlugIns/CozyWidgets.appex
+          codesign --force --sign - --entitlements build/sideload.entitlements Payload/CozyDaily.app
+          zip -qry "CozyDaily-unsigned-${GITHUB_RUN_NUMBER}.ipa" Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CozyDaily-unsigned-ipa
+          path: CozyDaily-unsigned-*.ipa
+          if-no-files-found: error
+
+  # IPA đã ký (có iCloud + WeatherKit + Push). Chỉ chạy khi đã khai báo đủ secrets, xem README.
+  signed-ipa:
+    runs-on: macos-15
+    if: github.event_name != 'pull_request'
+    env:
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+    steps:
+      - name: Check signing secrets
+        id: check
+        run: |
+          if [ -n "$APPLE_TEAM_ID" ] && [ -n "$ASC_KEY_ID" ] && [ -n "$ASC_ISSUER_ID" ] && [ -n "$ASC_PRIVATE_KEY" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Bỏ qua IPA đã ký vì chưa khai báo đủ secrets Apple Developer."
+          fi
+      - uses: actions/checkout@v4
+        if: steps.check.outputs.ready == 'true'
+      - name: Generate project
+        if: steps.check.outputs.ready == 'true'
+        run: brew install xcodegen && xcodegen generate
+      - name: Archive and export
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          KEY="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
+          printf '%s' "$ASC_PRIVATE_KEY" > "$KEY"
+          AUTH=(-allowProvisioningUpdates -authenticationKeyPath "$KEY" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
+          bash ci/xcb.sh archive \
+            -project CozyDaily.xcodeproj -scheme CozyDaily -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath build/CozyDaily.xcarchive \
+            "${AUTH[@]}" DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Automatic \
+            COZY_BUNDLE_PREFIX="$COZY_BUNDLE_PREFIX" COZY_CLOUD_ENABLED=YES \
+            CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER"
+          sed "s/__TEAM_ID__/$APPLE_TEAM_ID/" ci/ExportOptions.plist > build/ExportOptions.plist
+          bash ci/xcb.sh -exportArchive -archivePath build/CozyDaily.xcarchive \
+            -exportOptionsPlist build/ExportOptions.plist -exportPath build/export "${AUTH[@]}"
+          rm -f "$KEY"
+      - uses: actions/upload-artifact@v4
+        if: steps.check.outputs.ready == 'true'
+        with:
+          name: CozyDaily-signed-ipa
+          path: build/export/*.ipa
+          if-no-files-found: error

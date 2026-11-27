@@ -14,6 +14,10 @@ settings:
     # Điền Team ID Apple Developer của bạn (hoặc chọn trong Xcode > Signing & Capabilities).
     DEVELOPMENT_TEAM: ""
     CODE_SIGN_STYLE: Automatic
+    # Đổi tiền tố này (CI: biến COZY_BUNDLE_PREFIX) nếu bundle id đã có người dùng.
+    COZY_BUNDLE_PREFIX: com.cozydaily
+    # Chỉ bật (YES) khi app được ký bằng tài khoản Apple Developer trả phí có iCloud.
+    COZY_CLOUD_ENABLED: "NO"
 
 packages:
   CozyCore:
@@ -33,12 +37,12 @@ targets:
       path: CozyDaily/CozyDaily.entitlements
       properties:
         com.apple.security.application-groups:
-          - group.com.cozydaily.shared
+          - group.$(COZY_BUNDLE_PREFIX).shared
         com.apple.developer.weatherkit: true
         com.apple.developer.icloud-services:
           - CloudKit
         com.apple.developer.icloud-container-identifiers:
-          - iCloud.com.cozydaily
+          - iCloud.$(COZY_BUNDLE_PREFIX)
         aps-environment: development
     info:
       path: CozyDaily/Info.plist
@@ -51,12 +55,15 @@ targets:
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         UIBackgroundModes: [remote-notification]
         CKSharingSupported: true
+        CozyAppGroup: group.$(COZY_BUNDLE_PREFIX).shared
+        CozyCloudContainer: iCloud.$(COZY_BUNDLE_PREFIX)
+        CozyCloudEnabled: $(COZY_CLOUD_ENABLED)
         NSLocationWhenInUseUsageDescription: CozyDaily dùng vị trí gần đúng (~1 km) để lấy thời tiết, đổi trang phục cho linh vật và gợi ý món ăn.
         NSCalendarsFullAccessUsageDescription: CozyDaily hiển thị lịch Apple Calendar của bạn theo giao diện dễ thương.
         NSPhotoLibraryAddUsageDescription: CozyDaily lưu ảnh lưới sticker tháng vào thư viện ảnh.
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.cozydaily.app
+        PRODUCT_BUNDLE_IDENTIFIER: $(COZY_BUNDLE_PREFIX).app
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         TARGETED_DEVICE_FAMILY: "1"
@@ -73,18 +80,25 @@ targets:
       path: CozyWidgets/CozyWidgets.entitlements
       properties:
         com.apple.security.application-groups:
-          - group.com.cozydaily.shared
+          - group.$(COZY_BUNDLE_PREFIX).shared
+        com.apple.developer.icloud-services:
+          - CloudKit
+        com.apple.developer.icloud-container-identifiers:
+          - iCloud.$(COZY_BUNDLE_PREFIX)
     info:
       path: CozyWidgets/Info.plist
       properties:
         CFBundleDisplayName: CozyDaily
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CozyAppGroup: group.$(COZY_BUNDLE_PREFIX).shared
+        CozyCloudContainer: iCloud.$(COZY_BUNDLE_PREFIX)
+        CozyCloudEnabled: $(COZY_CLOUD_ENABLED)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.cozydaily.app.widgets
+        PRODUCT_BUNDLE_IDENTIFIER: $(COZY_BUNDLE_PREFIX).app.widgets
         TARGETED_DEVICE_FAMILY: "1"
 
 schemes:
