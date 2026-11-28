@@ -105,4 +105,90 @@ final class SpaceMergeTests: XCTestCase {
         XCTAssertTrue(repo.snapshot().spaces.isEmpty)
         XCTAssertTrue(repo.snapshot().checkIns.isEmpty)
     }
+
+    func testUserSettingsBackwardCompatibleDecode() throws {
+        let legacyJSON = """
+        {
+            "displayName": "Bông",
+            "species": "bunny",
+            "activeDecks": ["daily"],
+            "shareWeatherWithSpaces": false,
+            "shareDeviceBattery": true,
+            "syncAppleCalendar": false,
+            "hasOnboarded": true
+        }
+        """
+        let decoded = try JSONDecoder().decode(UserSettings.self, from: Data(legacyJSON.utf8))
+        XCTAssertEqual(decoded.displayName, "Bông")
+        XCTAssertEqual(decoded.species, .bunny)
+        XCTAssertEqual(decoded.appearance, .system)
+        XCTAssertTrue(decoded.hapticsEnabled)
+        XCTAssertEqual(decoded.weatherLocation, .autoGPS)
+
+        var updated = decoded
+        updated.appearance = .dark
+        updated.hapticsEnabled = false
+        updated.weatherLocation = .hanoi
+        let roundTrip = try JSONDecoder().decode(UserSettings.self, from: JSONEncoder().encode(updated))
+        XCTAssertEqual(roundTrip.appearance, .dark)
+        XCTAssertFalse(roundTrip.hapticsEnabled)
+        XCTAssertEqual(roundTrip.weatherLocation, .hanoi)
+    }
+
+    func testWMOCodeMappingAndWidgetLiveReload() {
+        XCTAssertEqual(WeatherCondition.fromWMOCode(0, temperatureC: 28), .clear)
+        XCTAssertEqual(WeatherCondition.fromWMOCode(0, temperatureC: 37), .hot)
+        XCTAssertEqual(WeatherCondition.fromWMOCode(63, temperatureC: 24), .rain)
+        XCTAssertEqual(WeatherCondition.fromWMOCode(95, temperatureC: 26), .thunderstorm)
+
+        // Demo weather với regionKey "demo" phải luôn buộc fetch dữ liệu thật.
+        let demoSnap = DemoData.makeInitialSnapshot(now: t0, calendar: TestCal.vn)
+        let policy = WeatherCachePolicy()
+        let decision = policy.decide(cached: demoSnap.weather, latitude: 10.78, longitude: 106.70, now: t0)
+        if case .useCache = decision {
+            XCTFail("Demo weather không được chặn fetch thời tiết thật")
+        }
+
+        // Widget process đọc từ cùng file App Group phải thấy cấu hình mới ngay khi app ghi.
+        let store = TestCal.tempStore()
+        let appRepo = CozyRepository(store: store, calendar: TestCal.vn)
+        let widgetRepo = CozyRepository(store: store, calendar: TestCal.vn)
+        appRepo.reset(to: demoSnap)
+        _ = widgetRepo.widgetConfig(id: DemoData.id(21))
+        appRepo.syncWidgetSpecies(from: .cat, to: .bunny)
+        XCTAssertEqual(widgetRepo.widgetConfig(id: DemoData.id(21))?.species, .bunny)
+    }
+
+    func testSpaceMergeEnforcesCoupleAndSquadMemberLimits() {
+        let extraMembers = (1...10).map { i in
+            MemberStatus(id: "_u\(i)", displayName: String(format: "Bạn %02d", i), species: .cat, updatedAt: t0)
+        }
+        var events: [CozyEvent] = []
+
+        // Couple: tối đa 2 người (mình + 1 người yêu)
+        let coupleMerged = SpaceMerge.merge(
+            local: makeLocal(),
+            events: &events,
+            remote: RemoteSpace(members: extraMembers),
+            myUserID: "_me"
+        )
+        XCTAssertEqual(coupleMerged.space.members.count, 2)
+        XCTAssertFalse(coupleMerged.space.canAddMember)
+        XCTAssertFalse(SpaceMerge.canAcceptMember(kind: .couple, existingMembers: Array(extraMembers.prefix(2)), userID: "_new"))
+        XCTAssertTrue(SpaceMerge.canAcceptMember(kind: .couple, existingMembers: Array(extraMembers.prefix(2)), userID: "_u1"))
+
+        // Squad: tối đa 8 người (mình + 7 bạn)
+        var squadLocal = makeLocal()
+        squadLocal.kind = .squad
+        let squadMerged = SpaceMerge.merge(
+            local: squadLocal,
+            events: &events,
+            remote: RemoteSpace(members: extraMembers),
+            myUserID: "_me"
+        )
+        XCTAssertEqual(squadMerged.space.members.count, 8)
+        XCTAssertFalse(squadMerged.space.canAddMember)
+        XCTAssertTrue(SpaceMerge.canAcceptMember(kind: .squad, existingMembers: Array(extraMembers.prefix(7)), userID: "_new"))
+        XCTAssertFalse(SpaceMerge.canAcceptMember(kind: .squad, existingMembers: Array(extraMembers.prefix(8)), userID: "_new"))
+    }
 }

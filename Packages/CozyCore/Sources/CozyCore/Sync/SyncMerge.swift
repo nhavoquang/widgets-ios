@@ -89,7 +89,13 @@ public enum SpaceMerge {
             m.id = DemoData.meID
             localMe = m
         }
-        let others = remote.members.filter { $0.id != myUserID }.sorted { ($0.displayName, $0.id) < ($1.displayName, $1.id) }
+        let maxOthers = max(0, space.kind.memberLimit.upperBound - (localMe == nil ? 0 : 1))
+        let others = Array(
+            remote.members
+                .filter { $0.id != myUserID }
+                .sorted { ($0.displayName, $0.id) < ($1.displayName, $1.id) }
+                .prefix(maxOthers)
+        )
         space.members = (localMe.map { [$0] } ?? []) + others
 
         // 3. Tương tác: chỉ thêm, hợp theo id.
@@ -156,6 +162,12 @@ public enum SpaceMerge {
         cloud.syncedEventIDs = space.sharedEventIDs
         space.cloud = cloud
         return (space, upload)
+    }
+
+    /// Kiểm tra xem một người dùng mới có còn chỗ tham gia không gian theo giới hạn (2 cho cặp đôi, 8 cho nhóm) hay không.
+    public static func canAcceptMember(kind: SpaceKind, existingMembers: [MemberStatus], userID: String) -> Bool {
+        if existingMembers.contains(where: { $0.id == userID }) { return true }
+        return existingMembers.count < kind.memberLimit.upperBound
     }
 
     static func sameContent(_ a: MemberStatus, _ b: MemberStatus) -> Bool {

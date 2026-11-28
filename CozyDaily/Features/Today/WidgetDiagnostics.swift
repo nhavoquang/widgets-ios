@@ -4,15 +4,30 @@ import CozyCore
 
 /// Thông tin về widget extension trong bản đã cài, dùng để tìm lỗi sau khi sideload.
 struct WidgetDiagnosticsSection: View {
+    var body: some View {
+        Section("Chẩn đoán widget") {
+            WidgetDiagnosticsContent()
+        }
+    }
+}
+
+/// Nội dung chẩn đoán thuần (dùng được trong cả Form lẫn Card thu gọn).
+struct WidgetDiagnosticsContent: View {
     @State private var placed = "đang đọc…"
 
     var body: some View {
-        Section("Chẩn đoán widget") {
+        VStack(alignment: .leading, spacing: 6) {
             ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
-                Text(line).font(.caption.monospaced()).textSelection(.enabled)
+                Text(line)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(Color.inkTaupe)
+                    .textSelection(.enabled)
             }
-            Text("Widget đã đặt: \(placed)").font(.caption.monospaced())
+            Text("Widget đã đặt: \(placed)")
+                .font(.caption.monospaced())
+                .foregroundStyle(Color.inkCoffee)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .onAppear {
             WidgetCenter.shared.getCurrentConfigurations { result in
                 let text: String

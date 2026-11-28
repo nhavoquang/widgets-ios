@@ -73,3 +73,29 @@ public enum WeatherSuggestion {
         "\(w.condition.displayName) \(w.temperatureText) ở \(w.placeName)"
     }
 }
+
+public extension WeatherCondition {
+    /// Ánh xạ mã thời tiết WMO chuẩn quốc tế (dùng bởi Open-Meteo) sang `WeatherCondition`.
+    static func fromWMOCode(_ code: Int, temperatureC: Double = 25) -> WeatherCondition {
+        switch code {
+        case 0:
+            return temperatureC >= 35 ? .hot : .clear
+        case 1, 2:
+            return temperatureC >= 35 ? .hot : .partlyCloudy
+        case 3:
+            return .cloudy
+        case 45, 48:
+            return .fog
+        case 51, 53, 55, 56, 57:
+            return .drizzle
+        case 61, 63, 65, 66, 67, 80, 81, 82:
+            return .rain
+        case 71, 73, 75, 77, 85, 86:
+            return .snow
+        case 95, 96, 99:
+            return .thunderstorm
+        default:
+            return .cloudy
+        }
+    }
+}

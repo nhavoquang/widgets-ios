@@ -20,9 +20,15 @@ enum CloudConfig {
 
 enum CloudSyncError: LocalizedError {
     case disabled
+    case spaceFull(SpaceKind)
 
     var errorDescription: String? {
-        "Bản cài này chưa bật iCloud. Cần build đã ký bằng tài khoản Apple Developer trả phí."
+        switch self {
+        case .disabled:
+            return "Bản cài này chưa bật iCloud. Cần build đã ký bằng tài khoản Apple Developer trả phí."
+        case .spaceFull(let kind):
+            return "\(kind.displayName) đã đủ tối đa \(kind.memberLimit.upperBound) người nên không thể tham gia thêm."
+        }
     }
 }
 
@@ -143,6 +149,14 @@ actor CloudSync {
             let result = try await db.modifyRecords(saving: [new], deleting: [])
             share = (try result.saveResults[new.recordID]?.get() as? CKShare) ?? new
         }
+        let shareURL = share.url
+        if let shareURL {
+            repository.mutate([.spaces]) { s in
+                if let i = s.spaces.firstIndex(where: { $0.cloud?.zoneName == info.zoneName }) {
+                    s.spaces[i].shareURL = shareURL
+                }
+            }
+        }
         try await sync()
         return (share, container)
     }
@@ -150,6 +164,16 @@ actor CloudSync {
     func accept(_ metadata: CKShare.Metadata) async throws {
         guard CloudConfig.isEnabled else { return }
         _ = try await CKContainer(identifier: metadata.containerIdentifier).accept(metadata)
+        let myUserID = try await container.userRecordID().recordName
+        // Kiểm tra giới hạn thành viên (2 cho Couple, 8 cho Squad) trước khi giữ kết nối.
+        let joinedZones = try await sharedDB.allRecordZones().filter { $0.zoneID.zoneName.hasPrefix(Self.spacePrefix) }
+        for zone in joinedZones {
+            let remote = try await fetchSpace(zoneID: zone.zoneID, database: sharedDB)
+            if let meta = remote.meta, !SpaceMerge.canAcceptMember(kind: meta.kind, existingMembers: remote.members, userID: myUserID) {
+                _ = try? await sharedDB.modifyRecordZones(saving: [], deleting: [zone.zoneID])
+                throw CloudSyncError.spaceFull(meta.kind)
+            }
+        }
         try await sync()
     }
 

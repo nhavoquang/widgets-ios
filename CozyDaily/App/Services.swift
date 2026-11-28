@@ -12,13 +12,28 @@ import WeatherKit
 
 @MainActor
 enum Haptics {
-    static func tap() { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
-    static func success() { UINotificationFeedbackGenerator().notificationOccurred(.success) }
+    static var isEnabled = true
+
+    static func tap() {
+        guard isEnabled else { return }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+
+    static func success() {
+        guard isEnabled else { return }
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+    }
+
     /// Rung "tim đập" cho Quick Ping.
     static func ping() {
+        guard isEnabled else { return }
         let g = UIImpactFeedbackGenerator(style: .soft)
         g.impactOccurred(intensity: 0.9)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) { g.impactOccurred(intensity: 0.6) }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(180))
+            guard isEnabled else { return }
+            g.impactOccurred(intensity: 0.6)
+        }
     }
 }
 
@@ -37,9 +52,9 @@ final class SpeechService {
     }
 }
 
-// MARK: - WeatherKit + cache theo vùng
+// MARK: - Weather (WeatherKit + Open-Meteo thật cho cả bản chưa ký)
 
-/// Chỉ Main App gọi WeatherKit. Widget đọc snapshot trong App Group.
+/// Chỉ Main App gọi mạng lấy thời tiết thật. Widget đọc snapshot trong App Group tức thì.
 @MainActor
 final class CozyWeatherService: NSObject, CLLocationManagerDelegate {
     private let repository: CozyRepository
@@ -47,6 +62,7 @@ final class CozyWeatherService: NSObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
     private var locationContinuation: CheckedContinuation<CLLocation?, Never>?
     private(set) var lastError: String?
+    private(set) var isRefreshing = false
 
     init(repository: CozyRepository) {
         self.repository = repository
@@ -56,20 +72,49 @@ final class CozyWeatherService: NSObject, CLLocationManagerDelegate {
     }
 
     func refreshIfNeeded(force: Bool = false) async {
-        guard let location = await currentLocation() else { return }
-        let cached = repository.snapshot().weather
-        let decision = policy.decide(cached: cached, latitude: location.coordinate.latitude, longitude: location.coordinate.longitude, now: Date(), force: force)
-        guard case .fetch = decision else { return }
-        await fetch(location: location)
+        guard !isRefreshing else { return }
+        isRefreshing = true
+        defer { isRefreshing = false }
+
+        let snap = repository.snapshot(reload: true)
+        let preset = snap.settings.weatherLocation
+
+        let lat: Double
+        let lon: Double
+        let fallbackPlace: String
+
+        if preset == .autoGPS, let gps = await currentLocation() {
+            lat = gps.coordinate.latitude
+            lon = gps.coordinate.longitude
+            fallbackPlace = await placeName(for: gps)
+        } else {
+            let effective = preset == .autoGPS ? WeatherLocationPreset.hcmc : preset
+            lat = effective.coordinates.latitude
+            lon = effective.coordinates.longitude
+            fallbackPlace = effective.shortName
+        }
+
+        let cached = snap.weather
+        let isDemoWeather = cached?.regionKey == "demo"
+        let decision = policy.decide(cached: cached, latitude: lat, longitude: lon, now: Date(), force: force)
+        if !isDemoWeather && !force, case .useCache = decision {
+            return
+        }
+
+        await fetchRealWeather(latitude: lat, longitude: lon, placeName: fallbackPlace)
     }
 
-    private func fetch(location: CLLocation) async {
+    /// Ưu tiên WeatherKit (nếu có quyền Apple Developer trả phí), tự chuyển sang Open-Meteo miễn phí
+    /// để thời tiết luôn là dữ liệu THẬT 100% trên cả bản sideload/miễn phí.
+    private func fetchRealWeather(latitude: Double, longitude: Double, placeName: String) async {
+        let region = policy.regionKey(latitude: latitude, longitude: longitude)
+
         #if canImport(WeatherKit)
         do {
-            let w = try await WeatherKit.WeatherService.shared.weather(for: location, including: .current, .daily)
+            let loc = CLLocation(latitude: latitude, longitude: longitude)
+            let w = try await WeatherKit.WeatherService.shared.weather(for: loc, including: .current, .daily)
             let current = w.0
             let today = w.1.first
-            let place = await placeName(for: location)
             let snap = WeatherSnapshot(
                 temperatureC: current.temperature.converted(to: .celsius).value,
                 apparentC: current.apparentTemperature.converted(to: .celsius).value,
@@ -77,16 +122,62 @@ final class CozyWeatherService: NSObject, CLLocationManagerDelegate {
                 humidity: current.humidity,
                 highC: today?.highTemperature.converted(to: .celsius).value ?? current.temperature.value,
                 lowC: today?.lowTemperature.converted(to: .celsius).value ?? current.temperature.value,
-                placeName: place,
-                regionKey: policy.regionKey(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude),
+                placeName: placeName,
+                regionKey: region,
                 fetchedAt: Date()
             )
             repository.updateWeather(snap)
             lastError = nil
+            return
         } catch {
-            lastError = error.localizedDescription
+            // Rơi xuống Open-Meteo thật ở dưới.
         }
         #endif
+
+        do {
+            let snap = try await fetchOpenMeteo(latitude: latitude, longitude: longitude, placeName: placeName, regionKey: region)
+            repository.updateWeather(snap)
+            lastError = nil
+        } catch {
+            lastError = "Chưa lấy được thời tiết trực tuyến: \(error.localizedDescription)"
+        }
+    }
+
+    private func fetchOpenMeteo(latitude: Double, longitude: Double, placeName: String, regionKey: String) async throws -> WeatherSnapshot {
+        var comps = URLComponents(string: "https://api.open-meteo.com/v1/forecast")!
+        comps.queryItems = [
+            URLQueryItem(name: "latitude", value: String(format: "%.4f", latitude)),
+            URLQueryItem(name: "longitude", value: String(format: "%.4f", longitude)),
+            URLQueryItem(name: "current", value: "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code"),
+            URLQueryItem(name: "daily", value: "temperature_2m_max,temperature_2m_min"),
+            URLQueryItem(name: "timezone", value: "auto"),
+            URLQueryItem(name: "forecast_days", value: "1"),
+        ]
+        var req = URLRequest(url: comps.url!)
+        req.timeoutInterval = 12
+        let (data, response) = try await URLSession.shared.data(for: req)
+        if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+            throw URLError(.badServerResponse)
+        }
+        let decoded = try JSONDecoder().decode(OpenMeteoResponse.self, from: data)
+        let temp = decoded.current.temperature_2m
+        let apparent = decoded.current.apparent_temperature
+        let humidity = min(max(decoded.current.relative_humidity_2m / 100.0, 0), 1)
+        let high = decoded.daily.temperature_2m_max.first ?? temp
+        let low = decoded.daily.temperature_2m_min.first ?? temp
+        let condition = WeatherCondition.fromWMOCode(decoded.current.weather_code, temperatureC: temp)
+
+        return WeatherSnapshot(
+            temperatureC: temp,
+            apparentC: apparent,
+            condition: condition,
+            humidity: humidity,
+            highC: high,
+            lowC: low,
+            placeName: placeName,
+            regionKey: regionKey,
+            fetchedAt: Date()
+        )
     }
 
     #if canImport(WeatherKit)
@@ -147,9 +238,24 @@ final class CozyWeatherService: NSObject, CLLocationManagerDelegate {
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let status = manager.authorizationStatus
         if status == .authorizedWhenInUse || status == .authorizedAlways {
-            Task { @MainActor in await self.refreshIfNeeded() }
+            Task { @MainActor in await self.refreshIfNeeded(force: true) }
         }
     }
+}
+
+private struct OpenMeteoResponse: Decodable {
+    struct Current: Decodable {
+        var temperature_2m: Double
+        var relative_humidity_2m: Double
+        var apparent_temperature: Double
+        var weather_code: Int
+    }
+    struct Daily: Decodable {
+        var temperature_2m_max: [Double]
+        var temperature_2m_min: [Double]
+    }
+    var current: Current
+    var daily: Daily
 }
 
 // MARK: - Apple Calendar (EventKit)

@@ -69,8 +69,10 @@ struct AnimatedMascotView<Reaction: Equatable>: View {
     }
 
     private func react() {
-        haptic.impactOccurred()
-        haptic.prepare()
+        if Haptics.isEnabled {
+            haptic.impactOccurred()
+            haptic.prepare()
+        }
         guard !reduceMotion else { return }
         withAnimation(.spring(response: 0.18, dampingFraction: 0.6)) { bounce = 1.16 }
         Task { @MainActor in
@@ -107,8 +109,11 @@ private struct ProceduralMascot: View {
         TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: isPaused)) { context in
             let t = context.date.timeIntervalSinceReferenceDate
             let wave = isPaused ? 0 : sin(t / period * 2 * .pi)
-            MascotView(state: state, size: size, animated: false)
-                .scaleEffect(x: 1 - 0.012 * wave, y: 1 + 0.018 * wave, anchor: .bottom)
+            let blinkCycle = t.truncatingRemainder(dividingBy: 3.8)
+            let isBlinking = !isPaused && blinkCycle > 3.62 && state.pose != .sleeping && state.pose != .yawning
+            let earWiggle = isPaused ? 0 : sin(t / (period * 0.75) * 2 * .pi) * 3.5
+            MascotView(state: state, size: size, animated: false, isBlinking: isBlinking, earWiggle: earWiggle)
+                .scaleEffect(x: 1 - 0.015 * wave, y: 1 + 0.022 * wave, anchor: .bottom)
                 .offset(y: -size * amplitude * max(0, wave))
         }
     }

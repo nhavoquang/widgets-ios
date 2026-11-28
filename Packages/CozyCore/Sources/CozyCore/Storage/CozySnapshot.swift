@@ -1,5 +1,28 @@
 import Foundation
 
+/// Chế độ giao diện hiển thị của app.
+public enum AppAppearance: String, Codable, CaseIterable, Sendable, Identifiable {
+    case system, light, dark
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .system: return "Theo máy"
+        case .light: return "Sáng ấm"
+        case .dark: return "Tối dịu"
+        }
+    }
+
+    public var symbolName: String {
+        switch self {
+        case .system: return "circle.lefthalf.filled"
+        case .light: return "sun.max.fill"
+        case .dark: return "moon.stars.fill"
+        }
+    }
+}
+
 /// Cài đặt người dùng.
 public struct UserSettings: Codable, Hashable, Sendable {
     public var displayName: String
@@ -9,6 +32,9 @@ public struct UserSettings: Codable, Hashable, Sendable {
     public var shareDeviceBattery: Bool
     public var syncAppleCalendar: Bool
     public var hasOnboarded: Bool
+    public var appearance: AppAppearance
+    public var hapticsEnabled: Bool
+    public var weatherLocation: WeatherLocationPreset
 
     public init(
         displayName: String = "Mình",
@@ -17,7 +43,10 @@ public struct UserSettings: Codable, Hashable, Sendable {
         shareWeatherWithSpaces: Bool = true,
         shareDeviceBattery: Bool = true,
         syncAppleCalendar: Bool = false,
-        hasOnboarded: Bool = false
+        hasOnboarded: Bool = false,
+        appearance: AppAppearance = .system,
+        hapticsEnabled: Bool = true,
+        weatherLocation: WeatherLocationPreset = .autoGPS
     ) {
         self.displayName = displayName
         self.species = species
@@ -26,6 +55,27 @@ public struct UserSettings: Codable, Hashable, Sendable {
         self.shareDeviceBattery = shareDeviceBattery
         self.syncAppleCalendar = syncAppleCalendar
         self.hasOnboarded = hasOnboarded
+        self.appearance = appearance
+        self.hapticsEnabled = hapticsEnabled
+        self.weatherLocation = weatherLocation
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case displayName, species, activeDecks, shareWeatherWithSpaces, shareDeviceBattery, syncAppleCalendar, hasOnboarded, appearance, hapticsEnabled, weatherLocation
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.displayName = try c.decodeIfPresent(String.self, forKey: .displayName) ?? "Mình"
+        self.species = try c.decodeIfPresent(MascotSpecies.self, forKey: .species) ?? .cat
+        self.activeDecks = try c.decodeIfPresent(Set<VocabDeck>.self, forKey: .activeDecks) ?? [.daily, .healing]
+        self.shareWeatherWithSpaces = try c.decodeIfPresent(Bool.self, forKey: .shareWeatherWithSpaces) ?? true
+        self.shareDeviceBattery = try c.decodeIfPresent(Bool.self, forKey: .shareDeviceBattery) ?? true
+        self.syncAppleCalendar = try c.decodeIfPresent(Bool.self, forKey: .syncAppleCalendar) ?? false
+        self.hasOnboarded = try c.decodeIfPresent(Bool.self, forKey: .hasOnboarded) ?? false
+        self.appearance = try c.decodeIfPresent(AppAppearance.self, forKey: .appearance) ?? .system
+        self.hapticsEnabled = try c.decodeIfPresent(Bool.self, forKey: .hapticsEnabled) ?? true
+        self.weatherLocation = try c.decodeIfPresent(WeatherLocationPreset.self, forKey: .weatherLocation) ?? .autoGPS
     }
 }
 

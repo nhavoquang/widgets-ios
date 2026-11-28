@@ -26,6 +26,7 @@ final class AppModel {
         self.weather = CozyWeatherService(repository: repository)
         repository.syncEngine = syncTrigger
         self.currentWord = repository.currentWord()
+        Haptics.isEnabled = self.snapshot.settings.hapticsEnabled
     }
 
     // MARK: - Refresh
@@ -34,6 +35,7 @@ final class AppModel {
         now = Date()
         snapshot = repository.snapshot(reload: true)
         currentWord = repository.currentWord(now: now)
+        Haptics.isEnabled = snapshot.settings.hapticsEnabled
     }
 
     private func commit() {
@@ -186,6 +188,44 @@ final class AppModel {
         commit()
     }
 
+    func sendMessage(_ text: String, in space: SharedSpace) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        repository.send(.text(String(trimmed.prefix(80))), in: space.id)
+        Haptics.tap()
+        commit()
+    }
+
+    func renameSpace(_ space: SharedSpace, to name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        var updated = space
+        updated.name = String(trimmed.prefix(32))
+        updated.modifiedAt = Date()
+        repository.upsertSpace(updated)
+        Haptics.success()
+        commit()
+    }
+
+    func createLocalSpace(kind: SpaceKind, name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = trimmed.isEmpty ? (kind == .couple ? "Hai đứa mình" : "Hội bạn thân") : String(trimmed.prefix(32))
+        let me = MemberStatus(
+            id: DemoData.meID,
+            displayName: settings.displayName,
+            species: settings.species,
+            mood: latestCheckInToday?.mood,
+            foods: latestCheckInToday?.foods ?? [],
+            socialBattery: latestCheckInToday?.socialBattery,
+            note: latestCheckInToday?.note ?? ""
+        )
+        var space = SharedSpace(kind: kind, name: title, members: [me], anniversary: kind == .couple ? Date() : nil)
+        space.modifiedAt = Date()
+        repository.upsertSpace(space)
+        Haptics.success()
+        commit()
+    }
+
     func setAnniversary(_ date: Date) {
         guard var c = couple else { return }
         c.anniversary = date
@@ -207,8 +247,24 @@ final class AppModel {
     }
 
     func updateSettings(_ body: (inout UserSettings) -> Void) {
+        let oldSpecies = snapshot.settings.species
         repository.updateSettings(body)
+        let newSpecies = repository.snapshot().settings.species
+        if oldSpecies != newSpecies {
+            repository.syncWidgetSpecies(from: oldSpecies, to: newSpecies)
+        }
         repository.updateMyProfile()
+        commit()
+    }
+
+    func setWeatherLocation(_ preset: WeatherLocationPreset) async {
+        repository.updateSettings { $0.weatherLocation = preset }
+        await weather.refreshIfNeeded(force: true)
+        commit()
+    }
+
+    func refreshWeatherNow() async {
+        await weather.refreshIfNeeded(force: true)
         commit()
     }
 

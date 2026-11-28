@@ -13,7 +13,8 @@ struct CozyDailyApp: App {
         WindowGroup {
             RootTabView()
                 .environment(model)
-                .tint(Color.inkCoffee)
+                .tint(Color.accentPeach)
+                .preferredColorScheme(model.settings.appearance.colorScheme)
                 .task { await model.onForeground() }
                 .onReceive(NotificationCenter.default.publisher(for: .cozyRemoteDidChange).receive(on: DispatchQueue.main)) { _ in
                     withAnimation(CozyMotion.spring) { model.refresh() }

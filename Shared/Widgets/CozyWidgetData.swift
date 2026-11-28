@@ -16,6 +16,7 @@ struct CozyWidgetData {
     var theme: WidgetTheme
     var word: VocabWord?
     var streak: Int
+    var learnedToday: Int
     var dueCount: Int
     var checkIn: CheckIn?
     var weather: WeatherSnapshot?
@@ -65,6 +66,7 @@ struct CozyWidgetData {
             theme: cfg.effectiveTheme(at: date, calendar: cal),
             word: word,
             streak: CozyRepository.streak(log: snap.learnedLog, now: date, calendar: cal),
+            learnedToday: snap.learnedLog[cal.dayKey(for: date)] ?? 0,
             dueCount: SpacedRepetition(calendar: cal).dueWords(states: snap.reviewStates, now: date).count,
             checkIn: latest,
             weather: snap.weather,

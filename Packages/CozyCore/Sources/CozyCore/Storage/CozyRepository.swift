@@ -354,6 +354,16 @@ public final class CozyRepository: @unchecked Sendable {
 
     public func widgetConfig(id: UUID?) -> WidgetConfig? {
         guard let id else { return nil }
-        return snapshot().widgetConfigs.first { $0.id == id }
+        return snapshot(reload: true).widgetConfigs.first { $0.id == id }
+    }
+
+    /// Đồng bộ loài linh vật mới sang các mẫu widget đang dùng loài cũ để Home/Lock Screen đổi theo ngay.
+    public func syncWidgetSpecies(from oldSpecies: MascotSpecies, to newSpecies: MascotSpecies) {
+        guard oldSpecies != newSpecies else { return }
+        mutate([.widgets]) { s in
+            for i in s.widgetConfigs.indices where s.widgetConfigs[i].species == oldSpecies {
+                s.widgetConfigs[i].species = newSpecies
+            }
+        }
     }
 }

@@ -1,131 +1,408 @@
 import SwiftUI
+import UIKit
 import CozyCore
 
-/// Tab 2 — Kết nối (Us & Squad).
+/// Tab 2 — Kết nối (Couple 2 người & Squad 3–8 người) theo thiết kế Huddle kết hợp Linh vật 3D Kawaii.
 struct ConnectView: View {
     @Environment(AppModel.self) private var model
     @State private var kind: SpaceKind = .couple
+    @State private var showRename = false
+    @State private var renameDraft = ""
+    @State private var showCreateLocal = false
+    @State private var createName = ""
+
+    private var activeSpace: SharedSpace? {
+        kind == .couple ? model.couple : model.squad
+    }
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    Picker("Không gian", selection: $kind) {
-                        ForEach(SpaceKind.allCases, id: \.self) { Text($0.displayName).tag($0) }
-                    }
-                    .pickerStyle(.segmented)
+            ZStack {
+                CozyAmbientBackground()
+                ScrollView {
+                    VStack(spacing: 16) {
+                        headerBar
+                        spaceKindSwitcher
 
-                    switch kind {
-                    case .couple:
-                        if let space = model.couple { CoupleSpaceView(space: space) } else { InviteCard(kind: .couple) }
-                    case .squad:
-                        if let space = model.squad { SquadBoardView(space: space) } else { InviteCard(kind: .squad) }
+                        switch kind {
+                        case .couple:
+                            if let space = model.couple {
+                                CoupleSpaceView(space: space, onRename: { openRename(space) })
+                            } else {
+                                EmptySpaceInviteCard(kind: .couple, onCreateLocal: { openCreate(.couple) })
+                            }
+                        case .squad:
+                            if let space = model.squad {
+                                SquadBoardView(space: space, onRename: { openRename(space) })
+                            } else {
+                                EmptySpaceInviteCard(kind: .squad, onCreateLocal: { openCreate(.squad) })
+                            }
+                        }
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 28)
                 }
-                .padding(16)
+                .scrollDismissesKeyboard(.interactively)
             }
-            .background(Color.bgCream.ignoresSafeArea())
-            .navigationTitle("Kết nối")
+            .toolbar(.hidden, for: .navigationBar)
+            .alert("Đổi tên không gian", isPresented: $showRename) {
+                TextField("Tên không gian", text: $renameDraft)
+                Button("Hủy", role: .cancel) {}
+                Button("Lưu") {
+                    if let space = activeSpace { model.renameSpace(space, to: renameDraft) }
+                }
+            }
+            .alert(kind == .couple ? "Tạo Couple Space" : "Tạo Squad Board", isPresented: $showCreateLocal) {
+                TextField(kind == .couple ? "VD: Mình & Gấu" : "VD: Hội Bánh Tráng", text: $createName)
+                Button("Hủy", role: .cancel) {}
+                Button("Tạo") { model.createLocalSpace(kind: kind, name: createName) }
+            }
         }
+    }
+
+    private var headerBar: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Không gian chung")
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color.inkTaupe)
+                Text("Kết nối 💞")
+                    .font(CozyFont.title(26, weight: .heavy))
+                    .foregroundStyle(Color.inkCoffee)
+            }
+            Spacer()
+            if let space = activeSpace {
+                Button {
+                    Haptics.tap()
+                    openRename(space)
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 12, weight: .bold))
+                        Text("Đổi tên")
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                    }
+                    .foregroundStyle(Color.inkCoffee)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Capsule().fill(Color.cardIvory))
+                    .overlay(Capsule().strokeBorder(Color.cardBorder, lineWidth: 1))
+                    .shadow(color: Color.inkCoffee.opacity(0.06), radius: 6, y: 2)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var spaceKindSwitcher: some View {
+        HStack(spacing: 6) {
+            switcherPill(
+                target: .couple,
+                title: "Hai đứa",
+                emoji: "💞",
+                count: model.couple?.members.count ?? 0,
+                limit: SpaceKind.couple.memberLimit.upperBound,
+                tint: .accentPeach
+            )
+            switcherPill(
+                target: .squad,
+                title: "Hội bạn",
+                emoji: "🧸",
+                count: model.squad?.members.count ?? 0,
+                limit: SpaceKind.squad.memberLimit.upperBound,
+                tint: .accentHoney
+            )
+        }
+        .padding(5)
+        .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Color.cardIvory))
+        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Color.cardBorder, lineWidth: 1))
+        .shadow(color: Color.inkCoffee.opacity(0.05), radius: 8, y: 3)
+    }
+
+    private func switcherPill(target: SpaceKind, title: String, emoji: String, count: Int, limit: Int, tint: Color) -> some View {
+        let selected = kind == target
+        return Button {
+            Haptics.tap()
+            withAnimation(CozyMotionTokens.playfulSpring) { kind = target }
+        } label: {
+            HStack(spacing: 6) {
+                Text(emoji).font(.system(size: 15))
+                Text(title)
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                Text("\(count)/\(limit)")
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Capsule().fill(selected ? Color.white.opacity(0.24) : tint.opacity(0.16)))
+            }
+            .foregroundStyle(selected ? Color.white : Color.inkCoffee)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                    .fill(selected ? tint : .clear)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func openRename(_ space: SharedSpace) {
+        renameDraft = space.name
+        showRename = true
+    }
+
+    private func openCreate(_ target: SpaceKind) {
+        kind = target
+        createName = ""
+        showCreateLocal = true
     }
 }
 
-// MARK: - Couple
+// MARK: - Live Status Dark Card (phong cách Huddle nổi bật)
+
+private struct SpaceLiveBanner: View {
+    var space: SharedSpace
+    var subtitle: String
+    var accent: Color
+    var iconKind: CozyIconKind
+    var onAction: () -> Void
+
+    private var isCloudSynced: Bool { space.cloud != nil }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(isCloudSynced ? Color.accentSage : Color.accentHoney)
+                        .frame(width: 8, height: 8)
+                    Text(isCloudSynced ? "Đang đồng bộ iCloud · \(space.members.count)/\(space.kind.memberLimit.upperBound) người" : "Không gian mẫu · \(space.members.count)/\(space.kind.memberLimit.upperBound) người")
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .foregroundStyle(isCloudSynced ? Color(RGBA(hex: "#A8D5BA")!) : Color(RGBA(hex: "#F2CF88")!))
+                }
+                Text(space.name)
+                    .font(CozyFont.title(20, weight: .heavy))
+                    .foregroundStyle(Color(RGBA(hex: "#FFFDF9")!))
+                    .lineLimit(1)
+                Text(subtitle)
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .foregroundStyle(Color(RGBA(hex: "#C8BEB4")!))
+            }
+            Spacer(minLength: 4)
+            Button(action: onAction) {
+                CozyAnimatedIcon(kind: iconKind, accent: accent, size: 44)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Color(RGBA(hex: "#2C2621")!), Color(RGBA(hex: "#3B312A")!)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+        )
+        .shadow(color: Color.inkCoffee.opacity(0.18), radius: 16, y: 8)
+    }
+}
+
+// MARK: - Couple (2 người)
 
 private struct CoupleSpaceView: View {
     @Environment(AppModel.self) private var model
     var space: SharedSpace
+    var onRename: () -> Void
+
     @State private var showAnniversary = false
+    @State private var lastSentPing: QuickPing?
+    @State private var showBurst = false
 
     var me: MemberStatus? { space.members.first { $0.id == DemoData.meID } }
     var partner: MemberStatus? { space.partner(of: DemoData.meID) }
 
+    private var loveDays: Int? {
+        guard let a = space.anniversary else { return nil }
+        return model.status(of: CozyEvent(title: "", kind: .countUp(since: a))).days
+    }
+
     var body: some View {
         VStack(spacing: 16) {
-            // Thẻ đôi song song
-            VStack(spacing: 14) {
-                if let a = space.anniversary {
-                    Button { showAnniversary = true } label: {
-                        VStack(spacing: 2) {
-                            Text("Đã bên nhau").font(CozyFont.body(13)).foregroundStyle(Color.inkTaupe)
-                            Text("\(model.status(of: CozyEvent(title: "", kind: .countUp(since: a))).days)")
-                                .font(CozyFont.number(48)).foregroundStyle(Color.accentPeach)
-                            Text("ngày 💞").font(CozyFont.title(15)).foregroundStyle(Color.inkCoffee)
+            // 1. Live Banner + Chạm tim gửi nhanh "Đang nhớ nè"
+            ZStack(alignment: .topTrailing) {
+                SpaceLiveBanner(
+                    space: space,
+                    subtitle: loveDays.map { "Đã bên nhau \($0) ngày 💞 · chạm đổi ngày yêu" } ?? "Chạm để đặt ngày bắt đầu yêu",
+                    accent: .accentPeach,
+                    iconKind: .heart,
+                    onAction: { triggerPing(.missYou) }
+                )
+                .onTapGesture { showAnniversary = true }
+
+                if showBurst {
+                    Text(lastSentPing.map { "\($0.emoji) Đã gửi!" } ?? "💓")
+                        .font(.system(size: 12, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Capsule().fill(Color.accentPeach))
+                        .shadow(color: Color.accentPeach.opacity(0.4), radius: 6, y: 3)
+                        .offset(x: -14, y: -10)
+                        .transition(.scale(scale: 0.5).combined(with: .opacity))
+                }
+            }
+
+            // 2. Thẻ đôi song song phong cách Squircle + Linh vật 3D Plush
+            HStack(alignment: .top, spacing: 12) {
+                if let me {
+                    CoupleMemberCard(member: me, weather: model.snapshot.weather, isHighlighted: false, tint: .accentSky)
+                }
+                if let partner {
+                    CoupleMemberCard(member: partner, weather: nil, isHighlighted: true, tint: .accentPeach)
+                } else {
+                    WaitingPartnerCard()
+                }
+            }
+
+            // 3. Quick Ping rung tim
+            VStack(alignment: .leading, spacing: 12) {
+                CozySectionHeader(
+                    title: "Quick Ping",
+                    symbol: "hand.wave.fill",
+                    accent: .accentPeach,
+                    trailing: "rung tim khi gửi",
+                    animatedIcon: .heart
+                )
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(QuickPing.allCases) { p in
+                            Button { triggerPing(p) } label: {
+                                Text("\(p.emoji) \(p.text)")
+                            }
+                            .buttonStyle(CozyPillButtonStyle(tint: .accentPeach, filled: p == .missYou))
                         }
                     }
-                    .buttonStyle(.plain)
-                }
-                HStack(alignment: .top, spacing: 12) {
-                    if let me { MemberCard(member: me, weather: model.snapshot.weather) }
-                    if let partner { MemberCard(member: partner, weather: nil) }
+                    .padding(.vertical, 2)
                 }
             }
             .cozyCard(accent: .accentPeach)
 
-            // Quick Ping
-            VStack(alignment: .leading, spacing: 12) {
-                CozySectionHeader(title: "Quick Ping", symbol: "hand.wave.fill", accent: .accentPeach, trailing: "rung nhẹ khi gửi")
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(QuickPing.allCases) { p in
-                            Button { model.sendPing(p) } label: { Text("\(p.emoji) \(p.text)") }
-                                .buttonStyle(CozyPillButtonStyle(tint: .accentPeach, filled: p == .missYou))
-                        }
-                    }
-                }
-            }
-            .cozyCard()
-
-            InteractionFeed(space: space)
-            InviteCard(kind: .couple, compact: true)
+            SharedEventsCard(space: space)
+            InteractionFeed(space: space, accent: .accentPeach)
+            InviteAccessCard(space: space, onRename: onRename)
         }
         .sheet(isPresented: $showAnniversary) {
             AnniversarySheet(date: space.anniversary ?? Date())
                 .presentationDetents([.medium])
+                .presentationCornerRadius(28)
+        }
+    }
+
+    private func triggerPing(_ ping: QuickPing) {
+        model.sendPing(ping)
+        lastSentPing = ping
+        withAnimation(CozyMotionTokens.playfulSpring) { showBurst = true }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(1300))
+            withAnimation(.easeOut(duration: 0.25)) { showBurst = false }
         }
     }
 }
 
-private struct MemberCard: View {
+private struct CoupleMemberCard: View {
     var member: MemberStatus
     var weather: WeatherSnapshot?
+    var isHighlighted: Bool
+    var tint: Color
 
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 7) {
             AnimatedMascotView(
                 state: MascotEngine.resolve(species: member.species, mood: member.mood, weather: weather, date: Date()),
-                size: 72, reaction: [member.mood?.rawValue ?? ""] + member.foods.map(\.rawValue)
+                size: 76,
+                reaction: [member.mood?.rawValue ?? ""] + member.foods.map(\.rawValue)
             )
-            Text(member.displayName).font(CozyFont.title(16)).foregroundStyle(Color.inkCoffee)
-            Text(member.mood.map { "\($0.emoji) \($0.displayName)" } ?? "Chưa cập nhật")
-                .font(CozyFont.body(13, weight: .medium)).foregroundStyle(Color.inkCoffee)
+            Text(member.displayName)
+                .font(CozyFont.title(16, weight: .heavy))
+                .foregroundStyle(Color.inkCoffee)
+                .lineLimit(1)
+            Text(member.mood.map { "\($0.emoji) \($0.displayName)" } ?? "Chưa check-in")
+                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .foregroundStyle(tint)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 3)
+                .background(Capsule().fill(tint.opacity(0.14)))
+                .lineLimit(1)
+
             if !member.foods.isEmpty {
-                Text(member.foods.map(\.emoji).joined(separator: " ")).font(.system(size: 18))
+                Text(member.foods.prefix(4).map(\.emoji).joined(separator: " "))
+                    .font(.system(size: 17))
             }
             if let s = member.socialBattery {
-                BatteryBar(value: s, tint: .accentPeach)
+                BatteryBar(value: s, tint: tint)
             }
             VStack(spacing: 2) {
                 if let b = member.deviceBattery {
-                    Label("Pin máy \(Int(b * 100))%", systemImage: b < 0.2 ? "battery.25percent" : "battery.75percent")
+                    Label("Pin \(Int(b * 100))%", systemImage: b < 0.2 ? "battery.25percent" : "battery.75percent")
                 }
-                if let w = member.weatherLine { Label(w, systemImage: "cloud.sun") }
-                Text("cập nhật \(member.updatedAt.formatted(.relative(presentation: .named, unitsStyle: .narrow)))")
+                if let w = member.weatherLine {
+                    Label(w, systemImage: "cloud.sun")
+                }
+                Text(member.updatedAt.formatted(.relative(presentation: .named, unitsStyle: .narrow)))
             }
-            .font(.system(size: 10))
+            .font(.system(size: 10, weight: .medium))
             .foregroundStyle(Color.inkTaupe)
             .lineLimit(1)
             .minimumScaleFactor(0.8)
+
             if !member.note.isEmpty {
                 Text("“\(member.note)”")
-                    .font(.custom("Noteworthy-Bold", size: 14, relativeTo: .body))
+                    .font(.custom("Noteworthy-Bold", size: 13.5, relativeTo: .body))
                     .foregroundStyle(Color.inkCoffee)
                     .multilineTextAlignment(.center)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .frame(maxWidth: .infinity)
+                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.bgCream))
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(12)
-        .background(RoundedRectangle(cornerRadius: 20).fill(Color.bgCream))
+        .cozyCard(accent: isHighlighted ? tint : nil, padding: 12)
+        .overlay(
+            RoundedRectangle(cornerRadius: CozyMetrics.cardCornerRadius, style: .continuous)
+                .strokeBorder(isHighlighted ? tint.opacity(0.45) : .clear, lineWidth: 1.5)
+        )
+    }
+}
+
+private struct WaitingPartnerCard: View {
+    var body: some View {
+        VStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(Color.accentPeach.opacity(0.14))
+                    .frame(width: 72, height: 72)
+                Image(systemName: "person.badge.plus")
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundStyle(Color.accentPeach)
+            }
+            Text("Chờ người ấy")
+                .font(CozyFont.title(15, weight: .bold))
+                .foregroundStyle(Color.inkCoffee)
+            Text("Gửi link mời bên dưới để 2 đứa nối widget chung nhé 💌")
+                .font(CozyFont.body(11))
+                .foregroundStyle(Color.inkTaupe)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, minHeight: 210)
+        .cozyCard(accent: .accentPeach, padding: 12)
     }
 }
 
@@ -141,66 +418,138 @@ private struct AnniversarySheet: View {
                     .environment(\.locale, Locale(identifier: "vi_VN"))
             }
             .navigationTitle("Đếm ngày yêu")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Đóng") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Lưu") { model.setAnniversary(date); dismiss() }
+                    Button("Lưu") {
+                        model.setAnniversary(date)
+                        Haptics.success()
+                        dismiss()
+                    }
+                    .bold()
                 }
             }
         }
     }
 }
 
-// MARK: - Squad
+// MARK: - Squad (3–8 người)
 
 private struct SquadBoardView: View {
     @Environment(AppModel.self) private var model
     var space: SharedSpace
+    var onRename: () -> Void
+
+    @State private var tappedSticker: String?
+
+    private let squadAccents: [Color] = [.accentPeach, .accentHoney, .accentSage, .accentSky]
 
     var body: some View {
         VStack(spacing: 16) {
+            // 1. Live Banner của nhóm
+            SpaceLiveBanner(
+                space: space,
+                subtitle: "Tối đa \(space.kind.memberLimit.upperBound) bạn thân · chung lịch & widget",
+                accent: .accentHoney,
+                iconKind: .sparkles,
+                onAction: { onRename() }
+            )
+
+            // 2. Lưới thành viên squircle đa sắc (kiểu Huddle + Linh vật 3D)
             VStack(alignment: .leading, spacing: 12) {
-                CozySectionHeader(title: space.name, symbol: "person.3.fill", accent: .accentHoney, trailing: "\(space.members.count)/\(space.kind.memberLimit.upperBound) người")
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                    ForEach(space.members) { m in
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack {
-                                MascotView(state: MascotEngine.resolve(species: m.species, mood: m.mood, weather: nil, date: Date()), size: 44, animated: false)
-                                VStack(alignment: .leading) {
-                                    Text(m.displayName).font(CozyFont.title(15))
-                                    Text(m.mood.map { "\($0.emoji) \($0.displayName)" } ?? "–").font(.system(size: 11)).foregroundStyle(Color.inkTaupe)
+                CozySectionHeader(
+                    title: "Thành viên nhóm",
+                    symbol: "person.3.fill",
+                    accent: .accentHoney,
+                    trailing: "\(space.members.count)/\(space.kind.memberLimit.upperBound) bạn",
+                    animatedIcon: .mood
+                )
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                    ForEach(Array(space.members.enumerated()), id: \.element.id) { idx, m in
+                        let tint = squadAccents[idx % squadAccents.count]
+                        VStack(alignment: .leading, spacing: 7) {
+                            HStack(spacing: 8) {
+                                MascotView(
+                                    state: MascotEngine.resolve(species: m.species, mood: m.mood, weather: nil, date: Date()),
+                                    size: 46,
+                                    animated: false
+                                )
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(m.displayName)
+                                        .font(CozyFont.title(15, weight: .bold))
+                                        .foregroundStyle(Color.inkCoffee)
+                                        .lineLimit(1)
+                                    Text(m.mood.map { "\($0.emoji) \($0.displayName)" } ?? "Đang nghỉ")
+                                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                        .foregroundStyle(Color.inkTaupe)
+                                        .lineLimit(1)
                                 }
                             }
-                            if let s = m.socialBattery { BatteryBar(value: s, tint: .accentHoney) }
+                            if let s = m.socialBattery {
+                                BatteryBar(value: s, tint: tint)
+                            }
                             if !m.note.isEmpty {
-                                Text(m.note).font(.custom("Noteworthy-Bold", size: 13, relativeTo: .body)).lineLimit(2)
+                                Text("“\(m.note)”")
+                                    .font(.custom("Noteworthy-Bold", size: 13, relativeTo: .body))
+                                    .foregroundStyle(Color.inkCoffee)
+                                    .lineLimit(2)
+                                    .padding(.horizontal, 7)
+                                    .padding(.vertical, 4)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.cardIvory))
                             }
                         }
-                        .padding(10)
+                        .padding(11)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(RoundedRectangle(cornerRadius: 18).fill(Color.bgCream))
+                        .background(
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .fill(Color.bgCream)
+                                .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(tint.opacity(0.08)))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .strokeBorder(tint.opacity(0.28), lineWidth: 1)
+                        )
                     }
                 }
             }
             .cozyCard(accent: .accentHoney)
 
+            // 3. Thả sticker tương tác có nảy spring
             VStack(alignment: .leading, spacing: 12) {
-                CozySectionHeader(title: "Thả sticker", symbol: "face.smiling.inverse", accent: .accentHoney, trailing: nil)
-                HStack {
+                CozySectionHeader(title: "Thả cảm xúc nhanh", symbol: "face.smiling.inverse", accent: .accentHoney, trailing: "chạm gửi cả nhóm", animatedIcon: .sparkles)
+                HStack(spacing: 4) {
                     ForEach(SquadReaction.all, id: \.self) { s in
-                        Button { model.react(s, in: space) } label: { Text(s).font(.system(size: 26)) }
-                            .buttonStyle(.plain)
-                            .frame(maxWidth: .infinity)
+                        let popped = tappedSticker == s
+                        Button {
+                            model.react(s, in: space)
+                            withAnimation(CozyMotionTokens.playfulSpring) { tappedSticker = s }
+                            Task { @MainActor in
+                                try? await Task.sleep(for: .milliseconds(350))
+                                withAnimation(.easeOut) { if tappedSticker == s { tappedSticker = nil } }
+                            }
+                        } label: {
+                            Text(s)
+                                .font(.system(size: 24))
+                                .frame(maxWidth: .infinity, minHeight: 40)
+                                .background(RoundedRectangle(cornerRadius: 12).fill(popped ? Color.accentHoney.opacity(0.32) : Color.bgCream))
+                                .scaleEffect(popped ? 1.2 : 1)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
             .cozyCard()
 
             SharedEventsCard(space: space)
-            InteractionFeed(space: space)
-            InviteCard(kind: .squad, compact: true)
+            InteractionFeed(space: space, accent: .accentHoney)
+            InviteAccessCard(space: space, onRename: onRename)
         }
     }
 }
+
+// MARK: - Shared Events & Live Feed
 
 private struct SharedEventsCard: View {
     @Environment(AppModel.self) private var model
@@ -209,69 +558,258 @@ private struct SharedEventsCard: View {
     var body: some View {
         let events = model.snapshot.events.filter { space.sharedEventIDs.contains($0.id) }
         VStack(alignment: .leading, spacing: 12) {
-            CozySectionHeader(title: "Đếm ngược chung", symbol: "calendar.badge.clock", accent: .accentSky, trailing: "hiện trên Lock Screen cả nhóm")
+            CozySectionHeader(
+                title: "Đếm ngược chung",
+                symbol: "calendar.badge.clock",
+                accent: .accentSky,
+                trailing: "hiện trên Lock Screen",
+                animatedIcon: .calendar
+            )
             if events.isEmpty {
-                Text("Đánh dấu “Chia sẻ với nhóm” khi tạo sự kiện ở tab Lịch.").font(.caption).foregroundStyle(Color.inkTaupe)
+                Text("Bật “Chia sẻ với \(space.name)” khi tạo sự kiện ở tab Lịch để cả nhà cùng đếm ngược nhé 🗓️")
+                    .font(CozyFont.body(12.5))
+                    .foregroundStyle(Color.inkTaupe)
+            } else {
+                ForEach(events) { e in EventRow(event: e, status: model.status(of: e)) }
             }
-            ForEach(events) { e in EventRow(event: e, status: model.status(of: e)) }
         }
-        .cozyCard()
+        .cozyCard(accent: .accentSky)
     }
 }
 
-// MARK: - Feed & Invite
-
 private struct InteractionFeed: View {
+    @Environment(AppModel.self) private var model
     var space: SharedSpace
+    var accent: Color
+    @State private var draftMessage = ""
 
     var body: some View {
         let items = space.interactions(on: Date())
-        VStack(alignment: .leading, spacing: 10) {
-            CozySectionHeader(title: "Hôm nay", symbol: "bubble.left.and.bubble.right.fill", accent: .accentSky, trailing: "\(items.count) tương tác")
-            if items.isEmpty {
-                Text("Chưa có tương tác nào hôm nay. Gửi một ping đi! 💌").font(.caption).foregroundStyle(Color.inkTaupe)
+        VStack(alignment: .leading, spacing: 11) {
+            CozySectionHeader(
+                title: "Nhắn nhanh hôm nay",
+                symbol: "bubble.left.and.bubble.right.fill",
+                accent: accent,
+                trailing: "\(items.count) tin"
+            )
+
+            // Ô nhắn nhanh trực tiếp (không cần rời màn hình)
+            HStack(spacing: 8) {
+                TextField("Gửi lời nhắn dễ thương…", text: $draftMessage)
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 9)
+                    .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.bgCream))
+                    .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.cardBorder, lineWidth: 1))
+                    .submitLabel(.send)
+                    .onSubmit { submitMessage() }
+                Button { submitMessage() } label: {
+                    Image(systemName: "paperplane.fill")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 38, height: 38)
+                        .background(Circle().fill(draftMessage.trimmingCharacters(in: .whitespaces).isEmpty ? Color.inkTaupe.opacity(0.3) : accent))
+                }
+                .buttonStyle(.plain)
+                .disabled(draftMessage.trimmingCharacters(in: .whitespaces).isEmpty)
             }
-            ForEach(items) { it in
-                let who = space.members.first { $0.id == it.fromMemberID }
-                let mine = it.fromMemberID == DemoData.meID
-                HStack {
-                    if mine { Spacer() }
-                    VStack(alignment: mine ? .trailing : .leading, spacing: 2) {
-                        Text("\(who?.displayName ?? "?") · \(it.sentAt.formatted(date: .omitted, time: .shortened))")
-                            .font(.system(size: 10)).foregroundStyle(Color.inkTaupe)
-                        Text(it.displayText)
-                            .font(CozyFont.body(15, weight: .medium))
-                            .padding(.horizontal, 12).padding(.vertical, 8)
-                            .background(RoundedRectangle(cornerRadius: 16).fill(mine ? Color.accentPeach.opacity(0.22) : Color.bgCream))
+
+            if items.isEmpty {
+                Text("Chưa có tương tác nào hôm nay. Gửi một ping hoặc lời nhắn đi! 💌")
+                    .font(.caption)
+                    .foregroundStyle(Color.inkTaupe)
+            } else {
+                ForEach(items.prefix(12)) { it in
+                    let who = space.members.first { $0.id == it.fromMemberID }
+                    let mine = it.fromMemberID == DemoData.meID
+                    HStack {
+                        if mine { Spacer(minLength: 28) }
+                        VStack(alignment: mine ? .trailing : .leading, spacing: 2) {
+                            Text("\(who?.displayName ?? "?") · \(it.sentAt.formatted(date: .omitted, time: .shortened))")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundStyle(Color.inkTaupe)
+                            Text(it.displayText)
+                                .font(.system(size: 14.5, weight: .medium, design: .rounded))
+                                .foregroundStyle(Color.inkCoffee)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .fill(mine ? accent.opacity(0.22) : Color.bgCream)
+                                )
+                        }
+                        if !mine { Spacer(minLength: 28) }
                     }
-                    if !mine { Spacer() }
                 }
             }
         }
         .cozyCard()
     }
+
+    private func submitMessage() {
+        let text = draftMessage
+        draftMessage = ""
+        model.sendMessage(text, in: space)
+    }
 }
 
-private struct InviteCard: View {
+// MARK: - Huddle-Style Invite & Access Management
+
+private struct InviteAccessCard: View {
     @Environment(AppModel.self) private var model
-    var kind: SpaceKind
-    var compact = false
+    var space: SharedSpace
+    var onRename: () -> Void
+
     @State private var invitation: ShareInvitation?
     @State private var working = false
+    @State private var copiedLink = false
     @State private var confirmLeave = false
 
+    private var tint: Color { space.kind == .couple ? .accentPeach : .accentHoney }
     private var cloudSpace: SharedSpace? {
-        model.snapshot.spaces.first { $0.kind == kind && $0.cloud != nil }
+        model.snapshot.spaces.first { $0.kind == space.kind && $0.cloud != nil }
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if !compact {
-                Text(kind == .couple ? "Mời người yêu vào Couple Space" : "Tạo Squad Board (3–8 người)")
-                    .font(CozyFont.title(17))
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Label("Quyền vào phòng", systemImage: "lock.shield.fill")
+                    .font(CozyFont.title(16, weight: .bold))
+                    .foregroundStyle(Color.inkCoffee)
+                Spacer()
+                Text(space.canAddMember ? "Còn chỗ (\(space.members.count)/\(space.kind.memberLimit.upperBound))" : "Đã đủ \(space.kind.memberLimit.upperBound)/\(space.kind.memberLimit.upperBound)")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundStyle(space.canAddMember ? Color.accentSage : Color.accentPeach)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 4)
+                    .background(Capsule().fill((space.canAddMember ? Color.accentSage : Color.accentPeach).opacity(0.16)))
             }
-            Text("Gửi link mời qua iMessage hoặc AirDrop. Không cần đăng ký tài khoản: dữ liệu đồng bộ bằng iCloud của mỗi người.")
-                .font(.caption).foregroundStyle(Color.inkTaupe)
+
+            Text("Chỉ những người nhận link mời iMessage / AirDrop mới vào được. Đồng bộ trực tiếp bằng iCloud riêng tư, không cần tạo tài khoản.")
+                .font(CozyFont.body(12))
+                .foregroundStyle(Color.inkTaupe)
+
+            if let url = cloudSpace?.shareURL {
+                HStack(spacing: 8) {
+                    Image(systemName: "link")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Color.inkTaupe)
+                    Text(url.absoluteString)
+                        .font(.system(size: 12, design: .monospaced))
+                        .foregroundStyle(Color.inkCoffee)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Spacer(minLength: 4)
+                    Button {
+                        UIPasteboard.general.string = url.absoluteString
+                        Haptics.success()
+                        withAnimation(CozyMotionTokens.playfulSpring) { copiedLink = true }
+                        Task { @MainActor in
+                            try? await Task.sleep(for: .seconds(1.5))
+                            withAnimation { copiedLink = false }
+                        }
+                    } label: {
+                        Text(copiedLink ? "Đã chép ✓" : "Sao chép")
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Capsule().fill(copiedLink ? Color.accentSage : Color.inkCoffee))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.bgCream))
+            }
+
+            if CloudConfig.isEnabled {
+                HStack(spacing: 8) {
+                    Button {
+                        working = true
+                        Task {
+                            invitation = await model.prepareInvitation(space.kind)
+                            working = false
+                        }
+                    } label: {
+                        Label(
+                            working ? "Đang tạo link…" : (cloudSpace == nil ? "Tạo phòng & Mời" : "Mời thêm / Quản lý"),
+                            systemImage: "square.and.arrow.up"
+                        )
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(CozyPillButtonStyle(tint: tint, filled: true))
+                    .disabled(working)
+
+                    if cloudSpace != nil {
+                        Button(role: .destructive) { confirmLeave = true } label: {
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                                .font(.system(size: 15, weight: .bold))
+                                .frame(width: 40, height: 38)
+                                .background(Circle().fill(Color.accentPeach.opacity(0.16)))
+                                .foregroundStyle(Color.accentPeach)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Rời không gian")
+                    }
+                }
+            } else {
+                HStack(spacing: 8) {
+                    Image(systemName: "icloud.slash")
+                        .foregroundStyle(Color.inkTaupe)
+                    Text("Đang chạy bản chưa bật iCloud (sideload miễn phí). Mời người thật cần bản IPA đã ký Apple Developer có CloudKit.")
+                        .font(.caption)
+                        .foregroundStyle(Color.inkTaupe)
+                }
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Color.bgCream))
+            }
+
+            if let error = model.cloudError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(Color.accentPeach)
+            }
+        }
+        .cozyCard()
+        .sheet(item: $invitation) { CloudSharingView(invitation: $0) }
+        .confirmationDialog(
+            "Rời không gian? Nếu bạn là người tạo, không gian sẽ bị xóa cho mọi người.",
+            isPresented: $confirmLeave,
+            titleVisibility: .visible
+        ) {
+            Button("Rời / Xóa", role: .destructive) {
+                if let cloudSpace { Task { await model.leave(cloudSpace) } }
+            }
+        }
+    }
+}
+
+private struct EmptySpaceInviteCard: View {
+    @Environment(AppModel.self) private var model
+    var kind: SpaceKind
+    var onCreateLocal: () -> Void
+    @State private var invitation: ShareInvitation?
+    @State private var working = false
+
+    private var tint: Color { kind == .couple ? .accentPeach : .accentHoney }
+
+    var body: some View {
+        VStack(spacing: 14) {
+            CozyAnimatedIcon(kind: kind == .couple ? .heart : .sparkles, accent: tint, size: 54)
+            Text(kind == .couple ? "Tạo Couple Space (2 người)" : "Tạo Squad Board (3–8 người)")
+                .font(CozyFont.title(19, weight: .heavy))
+                .foregroundStyle(Color.inkCoffee)
+            Text(
+                kind == .couple
+                    ? "Đếm ngày yêu, xem mood & thời tiết của người ấy, gửi Quick Ping rung tim ngay trên màn hình khóa."
+                    : "Tụ tập 3–8 bạn thân: xem pin xã hội, thả sticker và cùng đếm ngược chuyến đi chung trên Lock Screen."
+            )
+            .font(CozyFont.body(13))
+            .foregroundStyle(Color.inkTaupe)
+            .multilineTextAlignment(.center)
+
             if CloudConfig.isEnabled {
                 Button {
                     working = true
@@ -280,28 +818,24 @@ private struct InviteCard: View {
                         working = false
                     }
                 } label: {
-                    Label(working ? "Đang chuẩn bị…" : (cloudSpace == nil ? "Tạo & mời" : "Mời thêm / quản lý"), systemImage: "square.and.arrow.up")
+                    Label(working ? "Đang tạo phòng…" : "Tạo & gửi link mời iCloud", systemImage: "square.and.arrow.up")
+                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(CozyPillButtonStyle(tint: kind == .couple ? .accentPeach : .accentHoney, filled: false))
+                .buttonStyle(CozyPillButtonStyle(tint: tint, filled: true))
                 .disabled(working)
-                if cloudSpace != nil {
-                    Button("Rời không gian này", role: .destructive) { confirmLeave = true }
-                        .font(.caption)
-                }
             } else {
-                Label("Đang xem dữ liệu mẫu. Mời bạn bè cần bản cài đã bật iCloud.", systemImage: "icloud.slash")
-                    .font(.caption).foregroundStyle(Color.inkTaupe)
-            }
-            if let error = model.cloudError {
-                Text(error).font(.caption).foregroundStyle(Color.accentPeach)
+                Button { onCreateLocal() } label: {
+                    Label("Tạo không gian trên máy", systemImage: "plus.circle.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(CozyPillButtonStyle(tint: tint, filled: true))
+                Text("Bản cài miễn phí chưa có iCloud; bạn vẫn có thể tạo không gian để thiết kế widget trước.")
+                    .font(.caption)
+                    .foregroundStyle(Color.inkTaupe)
+                    .multilineTextAlignment(.center)
             }
         }
-        .cozyCard()
+        .cozyCard(accent: tint, padding: 20)
         .sheet(item: $invitation) { CloudSharingView(invitation: $0) }
-        .confirmationDialog("Rời không gian? Nếu bạn là người tạo, không gian sẽ bị xóa cho mọi người.", isPresented: $confirmLeave, titleVisibility: .visible) {
-            Button("Rời / Xóa", role: .destructive) {
-                if let space = cloudSpace { Task { await model.leave(space) } }
-            }
-        }
     }
 }

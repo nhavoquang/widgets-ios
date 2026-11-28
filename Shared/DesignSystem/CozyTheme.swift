@@ -31,6 +31,16 @@ extension Color {
     static let accentSky = Color(ColorToken.accentSky)
 }
 
+extension AppAppearance {
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
+}
+
 // MARK: - Typography
 
 enum CozyFont {
@@ -99,6 +109,36 @@ extension WidgetTheme {
     }
 }
 
+// MARK: - Ambient Pastel Background
+
+/// Nền giấy kem kèm các vệt màu nước pastel siêu dịu cho toàn màn hình.
+struct CozyAmbientBackground: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        ZStack {
+            Color.bgCream
+            Circle()
+                .fill(Color.accentPeach.opacity(colorScheme == .dark ? 0.14 : 0.20))
+                .frame(width: 280, height: 280)
+                .blur(radius: 75)
+                .offset(x: 130, y: -260)
+            Circle()
+                .fill(Color.accentHoney.opacity(colorScheme == .dark ? 0.10 : 0.18))
+                .frame(width: 240, height: 240)
+                .blur(radius: 70)
+                .offset(x: -140, y: -120)
+            Circle()
+                .fill(Color.accentSky.opacity(colorScheme == .dark ? 0.10 : 0.16))
+                .frame(width: 260, height: 260)
+                .blur(radius: 80)
+                .offset(x: -100, y: 280)
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+    }
+}
+
 // MARK: - Card
 
 struct CozyCardModifier: ViewModifier {
@@ -106,23 +146,32 @@ struct CozyCardModifier: ViewModifier {
     var padding: CGFloat = 16
 
     func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: CozyMetrics.cardCornerRadius, style: .continuous)
         content
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: CozyMetrics.cardCornerRadius, style: .continuous)
+                shape
                     .fill(Color.cardIvory)
-                    .overlay(alignment: .topLeading) {
+                    .overlay {
                         if let accent {
-                            RoundedRectangle(cornerRadius: CozyMetrics.cardCornerRadius, style: .continuous)
-                                .fill(LinearGradient(colors: [accent.opacity(0.14), .clear], startPoint: .topLeading, endPoint: .center))
+                            shape.fill(
+                                LinearGradient(
+                                    colors: [accent.opacity(0.16), accent.opacity(0.04), .clear],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
                         }
                     }
             )
             .overlay(
-                RoundedRectangle(cornerRadius: CozyMetrics.cardCornerRadius, style: .continuous)
-                    .strokeBorder(Color.cardBorder, lineWidth: CozyMetrics.cardBorderWidth)
+                shape.strokeBorder(
+                    accent?.opacity(0.24) ?? Color.cardBorder,
+                    lineWidth: CozyMetrics.cardBorderWidth
+                )
             )
+            .shadow(color: Color.inkCoffee.opacity(0.06), radius: 14, x: 0, y: 6)
     }
 }
 
@@ -132,29 +181,108 @@ extension View {
     }
 }
 
+// MARK: - Cute Reusable Pieces
+
 struct CozySectionHeader: View {
     var title: String
     var symbol: String
     var accent: Color
     var trailing: String?
+    var animatedIcon: CozyIconKind? = nil
 
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: symbol)
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(.white)
-                .frame(width: 26, height: 26)
-                .background(Circle().fill(accent))
+        HStack(spacing: 9) {
+            if let animatedIcon {
+                CozyAnimatedIcon(kind: animatedIcon, accent: accent, size: 30)
+            } else {
+                Image(systemName: symbol)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 28, height: 28)
+                    .background(
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [accent, accent.opacity(0.78)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    )
+                    .shadow(color: accent.opacity(0.28), radius: 5, y: 2)
+            }
             Text(title)
                 .font(CozyFont.title(17))
                 .foregroundStyle(Color.inkCoffee)
             Spacer()
             if let trailing {
                 Text(trailing)
-                    .font(CozyFont.body(12, weight: .medium))
+                    .font(CozyFont.body(11, weight: .semibold))
                     .foregroundStyle(Color.inkTaupe)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 4)
+                    .background(Capsule().fill(accent.opacity(0.12)))
             }
         }
+    }
+}
+
+struct CozyBadgePill: View {
+    var text: String
+    var symbol: String?
+    var tint: Color
+
+    var body: some View {
+        HStack(spacing: 4) {
+            if let symbol {
+                Image(systemName: symbol)
+                    .font(.system(size: 11, weight: .bold))
+            }
+            Text(text)
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .lineLimit(1)
+        }
+        .foregroundStyle(Color.inkCoffee)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            Capsule()
+                .fill(Color.cardIvory.opacity(0.92))
+                .overlay(Capsule().fill(tint.opacity(0.14)))
+        )
+        .overlay(Capsule().strokeBorder(tint.opacity(0.28), lineWidth: 1))
+    }
+}
+
+struct CozySpeechBubble: View {
+    var text: String
+    var tint: Color = .accentPeach
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "sparkle")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(tint)
+                .symbolEffect(.pulse.byLayer, options: .repeating.speed(0.5))
+            Text(text)
+                .font(.system(size: 13, weight: .medium, design: .rounded))
+                .foregroundStyle(Color.inkCoffee)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.cardIvory)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(tint.opacity(0.10))
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(tint.opacity(0.25), lineWidth: 1)
+        )
     }
 }
 
@@ -163,16 +291,24 @@ struct CozyPillButtonStyle: ButtonStyle {
     var filled = true
 
     func makeBody(configuration: Configuration) -> some View {
+        // Áp dụng Playful Button Press (motion-design skill): squash-and-stretch + shadow shrink + spring settle
         configuration.label
-            .font(CozyFont.body(14, weight: .semibold))
+            .font(.system(size: 14, weight: .semibold, design: .rounded))
             .padding(.horizontal, 14)
             .padding(.vertical, 9)
             .foregroundStyle(filled ? Color.white : tint)
             .background(
-                Capsule().fill(filled ? tint : tint.opacity(0.14))
+                Capsule()
+                    .fill(filled ? tint : tint.opacity(0.14))
+                    .shadow(
+                        color: filled ? tint.opacity(configuration.isPressed ? 0.12 : 0.28) : .clear,
+                        radius: configuration.isPressed ? 2 : 7,
+                        y: configuration.isPressed ? 1 : 3.5
+                    )
             )
-            .scaleEffect(configuration.isPressed ? 0.95 : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.6), value: configuration.isPressed)
+            .scaleEffect(x: configuration.isPressed ? 1.03 : 1, y: configuration.isPressed ? 0.93 : 1)
+            .offset(y: configuration.isPressed ? 1.5 : 0)
+            .animation(CozyMotionTokens.playfulSpring, value: configuration.isPressed)
     }
 }
 

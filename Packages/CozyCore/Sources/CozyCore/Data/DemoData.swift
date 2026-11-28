@@ -84,7 +84,7 @@ public enum DemoData {
             widgetConfigs: configs,
             weather: WeatherSnapshot(
                 temperatureC: 27, apparentC: 29, condition: .partlyCloudy, humidity: 0.72,
-                highC: 31, lowC: 24, placeName: "TP.HCM", regionKey: "10.78,106.70",
+                highC: 31, lowC: 24, placeName: "TP.HCM", regionKey: "demo",
                 fetchedAt: now.addingTimeInterval(-10 * 60)
             ),
             updatedAt: now

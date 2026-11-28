@@ -6,6 +6,8 @@ import CozyCore
 struct CozyWidgetsBundle: WidgetBundle {
     var body: some Widget {
         StudioWidget()
+        TodayCozyWidget()
+        WeatherCozyWidget()
         VocabWidget()
         CoupleWidget()
         EventWidget()
@@ -76,8 +78,30 @@ struct StudioWidget: Widget {
             CozyWidgetEntryView(data: entry.data)
         }
         .configurationDisplayName("Xưởng Widget")
-        .description("Hiển thị mẫu bạn tự thiết kế: nội dung, linh vật, màu, font và khung viền.")
+        .description("Hiển thị mẫu bạn tự thiết kế: nội dung, linh vật 3D, màu, font và khung viền.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular, .accessoryCircular, .accessoryInline])
+    }
+}
+
+struct TodayCozyWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "CozyTodayWidget", provider: FixedProvider(content: .combo)) { entry in
+            CozyWidgetEntryView(data: entry.data)
+        }
+        .configurationDisplayName("Hôm nay & Thời tiết")
+        .description("Linh vật 3D dễ thương kèm thời tiết thật, âm lịch, từ vựng & lịch sắp tới trên Home và Lock Screen.")
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular, .accessoryCircular, .accessoryInline])
+    }
+}
+
+struct WeatherCozyWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "CozyWeatherWidget", provider: FixedProvider(content: .weather)) { entry in
+            CozyWidgetEntryView(data: entry.data)
+        }
+        .configurationDisplayName("Thời tiết & Linh vật")
+        .description("Nhiệt độ thật, gợi ý trang phục & món ăn cùng linh vật đổi đồ theo trời.")
+        .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular, .accessoryCircular, .accessoryInline])
     }
 }
 
