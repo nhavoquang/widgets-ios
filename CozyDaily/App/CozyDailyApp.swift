@@ -45,7 +45,7 @@ struct RootTabView: View {
                 .tabItem { Label("Lịch & Lưới", systemImage: "calendar") }
                 .tag(AppTab.calendar)
             StudioView()
-                .tabItem { Label("Xưởng Widget", systemImage: "paintbrush.pointed.fill") }
+                .tabItem { Label("Lock Studio", systemImage: "iphone") }
                 .tag(AppTab.studio)
         }
     }
