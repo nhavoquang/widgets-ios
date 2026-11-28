@@ -34,6 +34,8 @@ struct TodayView: View {
                             DemoCleanupBanner()
                         }
 
+                        WidgetSetupGuideButton()
+
                         // 1. Lịch & Công việc hôm nay (ra Lock Screen ngay)
                         TodayScheduleCard()
 

@@ -23,6 +23,7 @@ struct SettingsSheet: View {
                         weatherLocationCard
                         vocabDecksCard
                         sharingCard
+                        WidgetSetupGuideButton()
                         widgetGuideCard
                         advancedCard
                     }
