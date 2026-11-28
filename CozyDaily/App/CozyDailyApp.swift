@@ -13,7 +13,7 @@ struct CozyDailyApp: App {
         WindowGroup {
             RootTabView()
                 .environment(model)
-                .tint(Color.accentPeach)
+                .tint(Color.accentSky)
                 .preferredColorScheme(model.settings.appearance.colorScheme)
                 .task { await model.onForeground() }
                 .onOpenURL { url in model.handleIncomingURL(url) }

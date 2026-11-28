@@ -323,28 +323,16 @@ private struct CoupleMemberCard: View {
     var tint: Color
 
     var body: some View {
-        VStack(spacing: 7) {
-            AnimatedMascotView(
-                state: MascotEngine.resolve(species: member.species, mood: member.mood, weather: weather, date: Date()),
-                size: 76,
-                reaction: [member.mood?.rawValue ?? ""] + member.foods.map(\.rawValue)
-            )
+        VStack(spacing: 8) {
+            ModernAvatar(name: member.displayName, tint: tint, size: 54)
             Text(member.displayName)
-                .font(CozyFont.title(16, weight: .heavy))
+                .font(CozyFont.title(15, weight: .bold))
                 .foregroundStyle(Color.inkCoffee)
                 .lineLimit(1)
-            Text(member.mood.map { "\($0.emoji) \($0.displayName)" } ?? "Chưa check-in")
-                .font(.system(size: 12, weight: .bold, design: .rounded))
+            Text(member.mood.map { "\($0.emoji) \($0.displayName)" } ?? "Chưa cập nhật")
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(tint)
-                .padding(.horizontal, 9)
-                .padding(.vertical, 3)
-                .background(Capsule().fill(tint.opacity(0.14)))
                 .lineLimit(1)
-
-            if !member.foods.isEmpty {
-                Text(member.foods.prefix(4).map(\.emoji).joined(separator: " "))
-                    .font(.system(size: 17))
-            }
             if let s = member.socialBattery {
                 BatteryBar(value: s, tint: tint)
             }
@@ -357,28 +345,23 @@ private struct CoupleMemberCard: View {
                 }
                 Text(member.updatedAt.formatted(.relative(presentation: .named, unitsStyle: .narrow)))
             }
-            .font(.system(size: 10, weight: .medium))
+            .font(.system(size: 10.5))
             .foregroundStyle(Color.inkTaupe)
             .lineLimit(1)
-            .minimumScaleFactor(0.8)
 
             if !member.note.isEmpty {
-                Text("“\(member.note)”")
-                    .font(.custom("Noteworthy-Bold", size: 13.5, relativeTo: .body))
+                Text(member.note)
+                    .font(.system(size: 12.5, weight: .medium))
                     .foregroundStyle(Color.inkCoffee)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 5)
                     .frame(maxWidth: .infinity)
-                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.bgCream))
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.bgCream))
             }
         }
         .frame(maxWidth: .infinity)
-        .cozyCard(accent: isHighlighted ? tint : nil, padding: 12)
-        .overlay(
-            RoundedRectangle(cornerRadius: CozyMetrics.cardCornerRadius, style: .continuous)
-                .strokeBorder(isHighlighted ? tint.opacity(0.45) : .clear, lineWidth: 1.5)
-        )
+        .cozyCard(padding: 12)
     }
 }
 
@@ -470,11 +453,7 @@ private struct SquadBoardView: View {
                         let tint = squadAccents[idx % squadAccents.count]
                         VStack(alignment: .leading, spacing: 7) {
                             HStack(spacing: 8) {
-                                MascotView(
-                                    state: MascotEngine.resolve(species: m.species, mood: m.mood, weather: nil, date: Date()),
-                                    size: 46,
-                                    animated: false
-                                )
+                                ModernAvatar(name: m.displayName, tint: tint, size: 38)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(m.displayName)
                                         .font(CozyFont.title(15, weight: .bold))

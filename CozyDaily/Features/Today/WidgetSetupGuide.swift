@@ -2,8 +2,7 @@ import SwiftUI
 import WidgetKit
 import CozyCore
 
-/// 4 widget Lock Screen cốt lõi của CozyDaily.
-/// `kind` phải khớp đúng với `kind:` khai báo trong `CozyWidgetsBundle.swift`.
+/// 4 widget Lock Screen cốt lõi.
 enum CozyLockWidget: String, CaseIterable, Identifiable {
     case schedule, vocab, weather, partner
 
@@ -20,10 +19,10 @@ enum CozyLockWidget: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .schedule: return "Lịch & Việc hôm nay"
-        case .vocab: return "Từ vựng hôm nay"
-        case .weather: return "Thời tiết thật"
-        case .partner: return "Cảm xúc người kết nối"
+        case .schedule: return "Lịch & Việc"
+        case .vocab: return "Từ vựng"
+        case .weather: return "Thời tiết"
+        case .partner: return "Người kết nối"
         }
     }
 
@@ -45,7 +44,6 @@ enum CozyLockWidget: String, CaseIterable, Identifiable {
     }
 }
 
-/// Đọc xem widget CozyDaily nào đang được đặt, ở Lock Screen hay Home Screen.
 @MainActor
 @Observable
 final class WidgetPlacementTracker {
@@ -68,7 +66,7 @@ final class WidgetPlacementTracker {
     var lockCount: Int { CozyLockWidget.allCases.filter(isOnLock).count }
 }
 
-/// Nút/thẻ mở màn hướng dẫn, tự quản lý sheet để gắn vào đâu cũng được.
+/// Nút gọn mở hướng dẫn thêm widget Lock Screen.
 struct WidgetSetupGuideButton: View {
     @State private var tracker = WidgetPlacementTracker()
     @State private var showGuide = false
@@ -81,31 +79,32 @@ struct WidgetSetupGuideButton: View {
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "lock.iphone")
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(.white)
-                    .frame(width: 36, height: 36)
-                    .background(Circle().fill(Color.accentPeach))
+                    .frame(width: 34, height: 34)
+                    .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.accentSky))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Thêm widget lên Lock Screen")
-                        .font(CozyFont.title(15, weight: .bold))
+                    Text("Thêm lên Lock Screen")
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(Color.inkCoffee)
-                    Text(tracker.lockCount == CozyLockWidget.allCases.count
-                         ? "Đã đặt đủ 4/4 widget ✓"
-                         : "Đã đặt \(tracker.lockCount)/\(CozyLockWidget.allCases.count) · chạm xem hướng dẫn")
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                    Text("Đã đặt \(tracker.lockCount)/\(CozyLockWidget.allCases.count) widget")
+                        .font(.system(size: 12))
                         .foregroundStyle(Color.inkTaupe)
                 }
                 Spacer()
+                Text("Hướng dẫn")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.accentSky)
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Color.inkTaupe)
             }
-            .cozyCard(accent: .accentPeach, padding: 12)
+            .cozyCard(padding: 12)
         }
         .buttonStyle(.plain)
         .sheet(isPresented: $showGuide) {
             WidgetSetupGuideSheet(tracker: tracker)
-                .presentationCornerRadius(28)
+                .presentationCornerRadius(24)
         }
         .onAppear { tracker.refresh() }
         .onChange(of: scenePhase) { _, phase in
@@ -126,21 +125,15 @@ struct WidgetSetupGuideSheet: View {
                 CozyAmbientBackground()
                 ScrollView {
                     VStack(spacing: 14) {
-                        intro
                         stepsCard
                         ForEach(CozyLockWidget.allCases) { w in
                             widgetCard(w)
                         }
-                        Text("iOS không cho app tự thêm widget hay mở thẳng trình chỉnh sửa Lock Screen, nên bước thêm phải do bạn chạm. Quay lại đây là dấu ✓ tự cập nhật.")
-                            .font(.caption)
-                            .foregroundStyle(Color.inkTaupe)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 8)
                     }
                     .padding(16)
                 }
             }
-            .navigationTitle("Widget Lock Screen")
+            .navigationTitle("Thêm lên Lock Screen")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Xong") { dismiss() }.bold() }
@@ -152,47 +145,26 @@ struct WidgetSetupGuideSheet: View {
         }
     }
 
-    private var intro: some View {
-        HStack(spacing: 12) {
-            AnimatedMascotView(state: model.mascot, size: 64, reaction: tracker.lockCount)
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Chỉ mất 4 bước, làm 1 lần")
-                    .font(CozyFont.title(17, weight: .heavy))
-                    .foregroundStyle(Color.inkCoffee)
-                Text("Widget sẽ tự cập nhật dữ liệu thật từ app, bạn không cần thêm lại.")
-                    .font(CozyFont.body(12.5))
-                    .foregroundStyle(Color.inkTaupe)
-            }
-        }
-        .cozyCard(accent: .accentPeach)
-    }
-
     private var stepsCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            step(1, "hand.tap.fill", "Mở khóa máy rồi nhấn giữ Màn hình khóa, chọn Tùy chỉnh → Màn hình khóa.")
-            step(2, "rectangle.dashed", "Chạm vào khung ngay dưới đồng hồ (Thêm tiện ích).")
-            step(3, "magnifyingglass", "Tìm CozyDaily, chọn widget bên dưới. Hình chữ nhật cho 3 dòng thông tin, hình tròn cho gọn.")
-            step(4, "checkmark.circle.fill", "Bấm Xong. Quay lại app để thấy dấu ✓.")
+            step(1, "Nhấn giữ Lock Screen → Tùy chỉnh")
+            step(2, "Chạm khung dưới đồng hồ → Tìm Widgets")
+            step(3, "Chọn 1 trong 4 widget dưới → Xong")
         }
-        .cozyCard()
+        .cozyCard(padding: 14)
     }
 
-    private func step(_ n: Int, _ symbol: String, _ text: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
+    private func step(_ n: Int, _ text: String) -> some View {
+        HStack(spacing: 10) {
             Text("\(n)")
-                .font(.system(size: 12, weight: .heavy, design: .rounded))
+                .font(.system(size: 12, weight: .bold, design: .rounded))
                 .foregroundStyle(.white)
                 .frame(width: 22, height: 22)
-                .background(Circle().fill(Color.accentPeach))
+                .background(Circle().fill(Color.accentSky))
             Text(text)
-                .font(CozyFont.body(13))
+                .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(Color.inkCoffee)
-                .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
-            Image(systemName: symbol)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Color.accentPeach)
-                .symbolEffect(.bounce, options: .repeating.speed(0.4))
         }
     }
 
@@ -201,62 +173,69 @@ struct WidgetSetupGuideSheet: View {
         return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Image(systemName: w.symbol)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 28, height: 28)
-                    .background(Circle().fill(w.accent))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(w.accent)
+                    .frame(width: 26, height: 26)
+                    .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(w.accent.opacity(0.14)))
                 Text(w.title)
-                    .font(CozyFont.title(16, weight: .bold))
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Color.inkCoffee)
                 Spacer()
                 Label(placed ? "Đã đặt" : "Chưa đặt", systemImage: placed ? "checkmark.circle.fill" : "circle.dashed")
-                    .font(.system(size: 11.5, weight: .bold, design: .rounded))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(placed ? Color.accentSage : Color.inkTaupe)
             }
-            preview(w)
+            LockWidgetMockPreview(widget: w)
         }
-        .cozyCard(accent: w.accent, padding: 12)
+        .cozyCard(padding: 12)
     }
+}
 
-    /// Mô phỏng ô chữ nhật Lock Screen bằng dữ liệu thật của bạn.
-    private func preview(_ w: CozyLockWidget) -> some View {
+/// Ô mô phỏng Lock Screen Rectangular hiện đại, dùng chung cho TodayView & Hướng dẫn.
+struct LockWidgetMockPreview: View {
+    @Environment(AppModel.self) private var model
+    var widget: CozyLockWidget
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            ForEach(Array(lines(w).enumerated()), id: \.offset) { i, line in
+            ForEach(Array(lines.enumerated()), id: \.offset) { i, line in
                 Text(line)
-                    .font(.system(size: i == 0 ? 14 : 12, weight: i == 0 ? .bold : .medium, design: .rounded))
+                    .font(.system(size: i == 0 ? 15 : 12.5, weight: i == 0 ? .bold : .medium))
                     .foregroundStyle(.white.opacity(i == 0 ? 1 : 0.8))
                     .lineLimit(1)
             }
         }
-        .padding(10)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(LinearGradient(colors: [Color(RGBA(hex: "#3B4A63")!), Color(RGBA(hex: "#6B5470")!)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .fill(Color(RGBA(hex: "#1C1C22")!))
         )
     }
 
-    private func lines(_ w: CozyLockWidget) -> [String] {
-        switch w {
+    private var lines: [String] {
+        switch widget {
         case .schedule:
             let pending = model.todaySchedule.filter { !$0.isDone }
-            guard !pending.isEmpty else { return ["Hôm nay", "Chưa có lịch hay việc nào"] }
+            guard !pending.isEmpty else { return ["Hôm nay", "Trống lịch hôm nay"] }
             return ["Hôm nay"] + pending.prefix(2).map { "\($0.timeText.map { "\($0) " } ?? "")\($0.title)" }
         case .vocab:
-            guard let word = model.currentWord else { return ["Từ vựng hôm nay", "Chọn kho từ trong app"] }
+            guard let word = model.currentWord else { return ["Từ vựng", "Chọn kho từ"] }
             return [word.word, word.phonetic, word.meaning].filter { !$0.isEmpty }
         case .weather:
-            guard let weather = model.snapshot.weather else { return ["Thời tiết", "Đang tải thời tiết thật…"] }
+            guard let weather = model.snapshot.weather else { return ["Thời tiết", "Đang tải…"] }
             return [
                 "\(weather.temperatureText) \(weather.placeName)",
-                "\(weather.condition.displayName) · Cảm giác \(Int(weather.apparentC.rounded()))°",
-                "↑\(Int(weather.highC.rounded()))° ↓\(Int(weather.lowC.rounded()))°",
+                "\(weather.condition.displayName) · ↑\(Int(weather.highC.rounded()))° ↓\(Int(weather.lowC.rounded()))°",
+                "Cảm giác \(Int(weather.apparentC.rounded()))° · Ẩm \(Int((weather.humidity * 100).rounded()))%",
             ]
         case .partner:
-            guard let p = model.couple?.partner(of: DemoData.meID) else { return ["Chưa kết nối", "Sang tab Kết nối để ghép đôi"] }
+            guard let p = model.couple?.partner(of: DemoData.meID) else { return ["Chưa kết nối", "Mở Kết nối"] }
             return [
-                "\(p.displayName)\(p.mood.map { " · \($0.displayName)" } ?? "")",
-                p.note.isEmpty ? (p.weatherLine ?? "Đang kết nối") : "“\(p.note)”",
+                p.displayName,
+                p.mood.map { "\($0.emoji) \($0.displayName)" } ?? "Đã kết nối",
+                p.note.isEmpty ? (p.weatherLine ?? "Đang kết nối") : p.note,
             ]
         }
     }

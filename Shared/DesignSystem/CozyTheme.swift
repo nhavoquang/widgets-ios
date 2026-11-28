@@ -1,19 +1,38 @@
 import SwiftUI
 import CozyCore
 
-// MARK: - Colors
+// MARK: - Modern Clean iOS Colors
 
 extension Color {
     init(_ rgba: RGBA) {
         self.init(.sRGB, red: rgba.red, green: rgba.green, blue: rgba.blue, opacity: rgba.alpha)
     }
 
-    /// Màu token tự đổi theo sáng/tối.
+    /// Bảng màu hiện đại, sạch, tương phản cao cho cả Light & Dark Mode (chuẩn iOS 17/18).
     init(_ token: ColorToken) {
         #if canImport(UIKit)
         self.init(UIColor { trait in
-            let c = trait.userInterfaceStyle == .dark ? token.darkRGBA : token.rgba
-            return UIColor(red: c.red, green: c.green, blue: c.blue, alpha: c.alpha)
+            let isDark = trait.userInterfaceStyle == .dark
+            switch token {
+            case .bgCream:
+                return isDark ? UIColor(red: 0.05, green: 0.05, blue: 0.06, alpha: 1) : UIColor(red: 0.95, green: 0.95, blue: 0.97, alpha: 1)
+            case .cardIvory:
+                return isDark ? UIColor(red: 0.11, green: 0.11, blue: 0.13, alpha: 1) : UIColor.white
+            case .cardBorder:
+                return isDark ? UIColor(white: 1, alpha: 0.10) : UIColor(white: 0, alpha: 0.07)
+            case .inkCoffee:
+                return isDark ? UIColor(white: 0.96, alpha: 1) : UIColor(red: 0.08, green: 0.08, blue: 0.10, alpha: 1)
+            case .inkTaupe:
+                return isDark ? UIColor(white: 0.62, alpha: 1) : UIColor(red: 0.43, green: 0.43, blue: 0.48, alpha: 1)
+            case .accentSky:
+                return isDark ? UIColor(red: 0.25, green: 0.62, blue: 1.0, alpha: 1) : UIColor(red: 0.0, green: 0.48, blue: 1.0, alpha: 1)
+            case .accentSage:
+                return isDark ? UIColor(red: 0.25, green: 0.82, blue: 0.55, alpha: 1) : UIColor(red: 0.16, green: 0.68, blue: 0.42, alpha: 1)
+            case .accentPeach:
+                return isDark ? UIColor(red: 1.0, green: 0.35, blue: 0.48, alpha: 1) : UIColor(red: 0.95, green: 0.24, blue: 0.38, alpha: 1)
+            case .accentHoney:
+                return isDark ? UIColor(red: 1.0, green: 0.68, blue: 0.20, alpha: 1) : UIColor(red: 0.95, green: 0.56, blue: 0.05, alpha: 1)
+            }
         })
         #else
         self.init(token.rgba)
@@ -44,34 +63,28 @@ extension AppAppearance {
 // MARK: - Typography
 
 enum CozyFont {
-    /// SF Pro Rounded cho tiêu đề/con số.
-    static func title(_ size: CGFloat = 22, weight: Font.Weight = .bold) -> Font {
-        .system(size: size, weight: weight, design: .rounded)
+    static func title(_ size: CGFloat = 20, weight: Font.Weight = .bold) -> Font {
+        .system(size: size, weight: weight, design: .default)
     }
 
-    /// SF Pro Text cho nội dung nhỏ.
     static func body(_ size: CGFloat = 15, weight: Font.Weight = .regular) -> Font {
         .system(size: size, weight: weight, design: .default)
     }
 
     static func number(_ size: CGFloat) -> Font {
-        .system(size: size, weight: .heavy, design: .rounded).monospacedDigit()
+        .system(size: size, weight: .bold, design: .rounded).monospacedDigit()
     }
 }
 
 extension WidgetFontStyle {
-    /// Font hiển thị trên widget theo lựa chọn của người dùng.
     func font(size: CGFloat, weight: Font.Weight = .semibold) -> Font {
         switch self {
         case .cozyRounded:
             return .system(size: size, weight: weight, design: .rounded)
         case .editorialSerif:
             return .system(size: size, weight: weight, design: .serif)
-        case .cleanModern:
+        case .cleanModern, .cuteHandwritten:
             return .system(size: size, weight: weight, design: .default)
-        case .cuteHandwritten:
-            // Font viết tay có sẵn trên iOS; có thể thay bằng font tùy chỉnh trong Resources/Fonts.
-            return .custom("Noteworthy-Bold", size: size * 1.05, relativeTo: .body)
         }
     }
 }
@@ -79,99 +92,45 @@ extension WidgetFontStyle {
 extension WidgetTheme {
     var background: Color {
         switch self {
-        case .paper: return Color(RGBA(hex: "#FFFDF9")!)
-        case .watercolor: return Color(RGBA(hex: "#F4EEF6")!)
-        case .night: return Color(RGBA(hex: "#2A251F")!)
-        case .festive: return Color(RGBA(hex: "#FCE9DF")!)
+        case .paper: return Color(RGBA(hex: "#FFFFFF")!)
+        case .watercolor: return Color(RGBA(hex: "#F2F4F8")!)
+        case .night: return Color(RGBA(hex: "#161618")!)
+        case .festive: return Color(RGBA(hex: "#FFF5F5")!)
         }
     }
 
     var ink: Color {
-        self == .night ? Color(RGBA(hex: "#F3EDE4")!) : Color(RGBA(hex: "#3D352E")!)
+        self == .night ? Color(RGBA(hex: "#F5F5F7")!) : Color(RGBA(hex: "#141416")!)
     }
 
     var secondaryInk: Color {
-        self == .night ? Color(RGBA(hex: "#B3A89C")!) : Color(RGBA(hex: "#8C8278")!)
+        self == .night ? Color(RGBA(hex: "#98989F")!) : Color(RGBA(hex: "#6E6E73")!)
     }
 
-    /// Lớp gradient nhẹ giả hiệu ứng màu nước.
     func wash(accent: Color) -> LinearGradient {
-        switch self {
-        case .watercolor:
-            return LinearGradient(colors: [accent.opacity(0.28), accent.opacity(0.05), .clear], startPoint: .topLeading, endPoint: .bottomTrailing)
-        case .festive:
-            return LinearGradient(colors: [Color.accentPeach.opacity(0.35), Color.accentHoney.opacity(0.2)], startPoint: .top, endPoint: .bottom)
-        case .night:
-            return LinearGradient(colors: [accent.opacity(0.18), .clear], startPoint: .top, endPoint: .bottom)
-        case .paper:
-            return LinearGradient(colors: [accent.opacity(0.10), .clear], startPoint: .topLeading, endPoint: .center)
-        }
+        LinearGradient(colors: [accent.opacity(self == .night ? 0.14 : 0.08), .clear], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 }
 
-// MARK: - Ambient Pastel Background
+// MARK: - Clean Background & Modern Card
 
-/// Nền giấy kem kèm các vệt màu nước pastel siêu dịu cho toàn màn hình.
 struct CozyAmbientBackground: View {
-    @Environment(\.colorScheme) private var colorScheme
-
     var body: some View {
-        ZStack {
-            Color.bgCream
-            Circle()
-                .fill(Color.accentPeach.opacity(colorScheme == .dark ? 0.14 : 0.20))
-                .frame(width: 280, height: 280)
-                .blur(radius: 75)
-                .offset(x: 130, y: -260)
-            Circle()
-                .fill(Color.accentHoney.opacity(colorScheme == .dark ? 0.10 : 0.18))
-                .frame(width: 240, height: 240)
-                .blur(radius: 70)
-                .offset(x: -140, y: -120)
-            Circle()
-                .fill(Color.accentSky.opacity(colorScheme == .dark ? 0.10 : 0.16))
-                .frame(width: 260, height: 260)
-                .blur(radius: 80)
-                .offset(x: -100, y: 280)
-        }
-        .ignoresSafeArea()
-        .allowsHitTesting(false)
+        Color.bgCream.ignoresSafeArea()
     }
 }
-
-// MARK: - Card
 
 struct CozyCardModifier: ViewModifier {
     var accent: Color?
     var padding: CGFloat = 16
 
     func body(content: Content) -> some View {
-        let shape = RoundedRectangle(cornerRadius: CozyMetrics.cardCornerRadius, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
         content
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                shape
-                    .fill(Color.cardIvory)
-                    .overlay {
-                        if let accent {
-                            shape.fill(
-                                LinearGradient(
-                                    colors: [accent.opacity(0.16), accent.opacity(0.04), .clear],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                        }
-                    }
-            )
-            .overlay(
-                shape.strokeBorder(
-                    accent?.opacity(0.24) ?? Color.cardBorder,
-                    lineWidth: CozyMetrics.cardBorderWidth
-                )
-            )
-            .shadow(color: Color.inkCoffee.opacity(0.06), radius: 14, x: 0, y: 6)
+            .background(shape.fill(Color.cardIvory))
+            .overlay(shape.strokeBorder(Color.cardBorder, lineWidth: 1))
     }
 }
 
@@ -181,7 +140,7 @@ extension View {
     }
 }
 
-// MARK: - Cute Reusable Pieces
+// MARK: - Clean Modern Components
 
 struct CozySectionHeader: View {
     var title: String
@@ -191,37 +150,20 @@ struct CozySectionHeader: View {
     var animatedIcon: CozyIconKind? = nil
 
     var body: some View {
-        HStack(spacing: 9) {
-            if let animatedIcon {
-                CozyAnimatedIcon(kind: animatedIcon, accent: accent, size: 30)
-            } else {
-                Image(systemName: symbol)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 28, height: 28)
-                    .background(
-                        Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [accent, accent.opacity(0.78)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                    )
-                    .shadow(color: accent.opacity(0.28), radius: 5, y: 2)
-            }
+        HStack(spacing: 8) {
+            Image(systemName: symbol)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(accent)
+                .frame(width: 28, height: 28)
+                .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(accent.opacity(0.14)))
             Text(title)
-                .font(CozyFont.title(17))
+                .font(CozyFont.title(16, weight: .semibold))
                 .foregroundStyle(Color.inkCoffee)
             Spacer()
             if let trailing {
                 Text(trailing)
-                    .font(CozyFont.body(11, weight: .semibold))
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(Color.inkTaupe)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 4)
-                    .background(Capsule().fill(accent.opacity(0.12)))
             }
         }
     }
@@ -235,54 +177,26 @@ struct CozyBadgePill: View {
     var body: some View {
         HStack(spacing: 4) {
             if let symbol {
-                Image(systemName: symbol)
-                    .font(.system(size: 11, weight: .bold))
+                Image(systemName: symbol).font(.system(size: 11, weight: .semibold))
             }
-            Text(text)
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .lineLimit(1)
+            Text(text).font(.system(size: 12, weight: .semibold)).lineLimit(1)
         }
-        .foregroundStyle(Color.inkCoffee)
+        .foregroundStyle(tint)
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(
-            Capsule()
-                .fill(Color.cardIvory.opacity(0.92))
-                .overlay(Capsule().fill(tint.opacity(0.14)))
-        )
-        .overlay(Capsule().strokeBorder(tint.opacity(0.28), lineWidth: 1))
+        .padding(.vertical, 5)
+        .background(Capsule().fill(tint.opacity(0.12)))
     }
 }
 
 struct CozySpeechBubble: View {
     var text: String
-    var tint: Color = .accentPeach
+    var tint: Color = .accentSky
 
     var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "sparkle")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(tint)
-                .symbolEffect(.pulse.byLayer, options: .repeating.speed(0.5))
-            Text(text)
-                .font(.system(size: 13, weight: .medium, design: .rounded))
-                .foregroundStyle(Color.inkCoffee)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 7)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.cardIvory)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(tint.opacity(0.10))
-                )
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(tint.opacity(0.25), lineWidth: 1)
-        )
+        Text(text)
+            .font(.system(size: 13, weight: .medium))
+            .foregroundStyle(Color.inkTaupe)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -291,24 +205,41 @@ struct CozyPillButtonStyle: ButtonStyle {
     var filled = true
 
     func makeBody(configuration: Configuration) -> some View {
-        // Áp dụng Playful Button Press (motion-design skill): squash-and-stretch + shadow shrink + spring settle
         configuration.label
-            .font(.system(size: 14, weight: .semibold, design: .rounded))
+            .font(.system(size: 14, weight: .semibold))
             .padding(.horizontal, 14)
             .padding(.vertical, 9)
             .foregroundStyle(filled ? Color.white : tint)
             .background(
-                Capsule()
-                    .fill(filled ? tint : tint.opacity(0.14))
-                    .shadow(
-                        color: filled ? tint.opacity(configuration.isPressed ? 0.12 : 0.28) : .clear,
-                        radius: configuration.isPressed ? 2 : 7,
-                        y: configuration.isPressed ? 1 : 3.5
-                    )
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(filled ? tint : tint.opacity(0.12))
             )
-            .scaleEffect(x: configuration.isPressed ? 1.03 : 1, y: configuration.isPressed ? 0.93 : 1)
-            .offset(y: configuration.isPressed ? 1.5 : 0)
-            .animation(CozyMotionTokens.playfulSpring, value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(.easeOut(duration: 0.14), value: configuration.isPressed)
+    }
+}
+
+/// Avatar chữ cái hiện đại thay cho linh vật mèo/chó.
+struct ModernAvatar: View {
+    var name: String
+    var tint: Color
+    var size: CGFloat = 44
+
+    private var initials: String {
+        let parts = name.split(separator: " ").prefix(2)
+        let chars = parts.compactMap(\.first).map(String.init).joined()
+        return chars.isEmpty ? "?" : chars.uppercased()
+    }
+
+    var body: some View {
+        Text(initials)
+            .font(.system(size: size * 0.38, weight: .bold, design: .rounded))
+            .foregroundStyle(.white)
+            .frame(width: size, height: size)
+            .background(
+                RoundedRectangle(cornerRadius: size * 0.32, style: .continuous)
+                    .fill(LinearGradient(colors: [tint, tint.opacity(0.75)], startPoint: .topLeading, endPoint: .bottomTrailing))
+            )
     }
 }
 
