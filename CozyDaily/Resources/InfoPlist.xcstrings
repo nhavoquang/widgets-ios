@@ -285,6 +285,101 @@
           }
         }
       }
+    },
+    "NSRemindersFullAccessUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Widgets reads your incomplete Apple Reminders to show today’s tasks directly on your Lock Screen."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Widgets đọc danh sách Lời nhắc chưa xong để hiển thị công việc hôm nay ngay trên Màn hình khóa."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ロック画面に今日の未完了タスクを表示するためにリマインダーを読み取ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "잠금 화면에 오늘의 할 일을 표시하기 위해 미리 알림을 불러옵니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "读取您的未完成提醒事项以在锁屏上显示今日待办。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "讀取您的未完成提醒事項以在鎖定畫面上顯示今日待辦。"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lee tus recordatorios pendientes para mostrar tus tareas de hoy en la pantalla de bloqueo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lit vos rappels non terminés pour afficher vos tâches du jour sur l’écran verrouillé."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liest deine offenen Erinnerungen, um heutige Aufgaben auf dem Sperrbildschirm anzuzeigen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lê seus lembretes pendentes para mostrar suas tarefas de hoje na Tela Bloqueada."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "อ่านรายการเตือนความจำที่ยังไม่เสร็จเพื่อแสดงงานวันนี้บนหน้าจอล็อก"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Membaca pengingat yang belum selesai untuk menampilkan tugas hari ini di Layar Terkunci."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Читает незавершённые напоминания для показа задач на экране блокировки."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Legge i promemoria in sospeso per mostrare le attività di oggi sulla schermata di blocco."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يقرأ التذكيرات غير المكتملة لعرض مهام اليوم على شاشة القفل."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
