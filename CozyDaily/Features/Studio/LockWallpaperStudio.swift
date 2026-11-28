@@ -129,8 +129,43 @@ struct LockLayoutConfig: Equatable, Codable {
     var verticalOffset: CGFloat = 0
     /// Đánh dấu user đã tự chỉnh danh sách khối để khi chọn mẫu mới không bị mất các khối đã xếp.
     var userEditedBlocks: Bool = false
+    /// Đánh dấu user đã cài đặt Shortcut tự động (chỉ hỏi cài 1 lần duy nhất).
+    var shortcutInstalled: Bool = false
 
     private static let storageKey = "cozy.lockLayoutConfig.v3"
+
+    enum CodingKeys: String, CodingKey {
+        case blocks, bg, cardStyle, cornerRadius, verticalOffset, userEditedBlocks, shortcutInstalled
+    }
+
+    init(
+        blocks: [LockBlockKind] = [.weekStrip, .todaySchedule, .weather, .vocab],
+        bg: LockWallpaperBg = .pureDark,
+        cardStyle: LockCardStyle = .none,
+        cornerRadius: CGFloat = 18,
+        verticalOffset: CGFloat = 0,
+        userEditedBlocks: Bool = false,
+        shortcutInstalled: Bool = false
+    ) {
+        self.blocks = blocks
+        self.bg = bg
+        self.cardStyle = cardStyle
+        self.cornerRadius = cornerRadius
+        self.verticalOffset = verticalOffset
+        self.userEditedBlocks = userEditedBlocks
+        self.shortcutInstalled = shortcutInstalled
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        blocks = try c.decodeIfPresent([LockBlockKind].self, forKey: .blocks) ?? [.weekStrip, .todaySchedule, .weather, .vocab]
+        bg = try c.decodeIfPresent(LockWallpaperBg.self, forKey: .bg) ?? .pureDark
+        cardStyle = try c.decodeIfPresent(LockCardStyle.self, forKey: .cardStyle) ?? .none
+        cornerRadius = try c.decodeIfPresent(CGFloat.self, forKey: .cornerRadius) ?? 18
+        verticalOffset = try c.decodeIfPresent(CGFloat.self, forKey: .verticalOffset) ?? 0
+        userEditedBlocks = try c.decodeIfPresent(Bool.self, forKey: .userEditedBlocks) ?? false
+        shortcutInstalled = try c.decodeIfPresent(Bool.self, forKey: .shortcutInstalled) ?? false
+    }
 
     private static var sharedDefaults: UserDefaults {
         if let group = SnapshotStore.activeAppGroupID, let d = UserDefaults(suiteName: group) {
@@ -303,17 +338,22 @@ struct LockWallpaperStudio: View {
                 Haptics.tap()
                 showShortcutGuide = true
             } label: {
-                Image(systemName: "bolt.fill")
+                Image(systemName: config.shortcutInstalled ? "gearshape" : "bolt.fill")
                     .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(.white)
                     .frame(width: 34, height: 34)
                     .background(Circle().fill(Color.white.opacity(0.14)))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Tự động cập nhật Shortcut")
+            .accessibilityLabel("Cài đặt Shortcut")
 
             Button {
-                exportWallpaper()
+                Haptics.tap()
+                if config.shortcutInstalled {
+                    runLockScreenShortcut()
+                } else {
+                    exportWallpaper()
+                }
             } label: {
                 HStack(spacing: 5) {
                     Image(systemName: "arrow.triangle.2.circlepath")
@@ -438,8 +478,10 @@ struct LockWallpaperStudio: View {
                     let keepBlocks = config.userEditedBlocks
                     let savedBlocks = config.blocks
                     let savedOffset = config.verticalOffset
+                    let savedShortcutInstalled = config.shortcutInstalled
                     var next = preset.config
                     next.verticalOffset = savedOffset
+                    next.shortcutInstalled = savedShortcutInstalled
                     if keepBlocks {
                         next.blocks = savedBlocks
                         next.userEditedBlocks = true
@@ -676,44 +718,32 @@ struct LockWallpaperStudio: View {
 
                     VStack(spacing: 10) {
                         Button {
+                            config.shortcutInstalled = true
+                            config.save()
+                            showExportSheet = false
                             runLockScreenShortcut()
                         } label: {
-                            Label("Áp dụng ngay bằng Shortcut ⚡", systemImage: "bolt.fill")
+                            Label("Update Lock Screen", systemImage: "arrow.triangle.2.circlepath")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(CozyPillButtonStyle(tint: .accentSky, filled: true))
 
-                        if let shareURL = URL(string: Self.templateShortcutShareURL), !Self.templateShortcutShareURL.isEmpty {
+                        if !config.shortcutInstalled,
+                           let shareURL = URL(string: Self.templateShortcutShareURL),
+                           !Self.templateShortcutShareURL.isEmpty {
                             Button {
+                                config.shortcutInstalled = true
+                                config.save()
                                 openURL(shareURL)
                             } label: {
-                                Label("Cài Shortcut tự động (1 chạm)", systemImage: "plus.app.fill")
+                                Label("Lần đầu: Cài Shortcut tự động (1 chạm)", systemImage: "plus.app.fill")
                                     .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(CozyPillButtonStyle(tint: .accentSage, filled: false))
                         }
-
-                        if let ui = exportedImage {
-                            HStack(spacing: 10) {
-                                Button {
-                                    UIImageWriteToSavedPhotosAlbum(ui, nil, nil, nil)
-                                    Haptics.success()
-                                    savedToast = true
-                                } label: {
-                                    Label(savedToast ? "Đã lưu ✓" : "Lưu vào Ảnh", systemImage: "arrow.down.to.line")
-                                        .frame(maxWidth: .infinity)
-                                }
-                                .buttonStyle(CozyPillButtonStyle(tint: .inkTaupe, filled: false))
-
-                                ShareLink(item: Image(uiImage: ui), preview: SharePreview("Lock Screen", image: Image(uiImage: ui))) {
-                                    Label("Chia sẻ", systemImage: "square.and.arrow.up")
-                                }
-                                .buttonStyle(CozyPillButtonStyle(tint: .inkTaupe, filled: false))
-                            }
-                        }
                     }
 
-                    Text("Lưu ý: Nếu máy đang bật chế độ Tập trung (Focus) của Locka ở dưới màn hình khóa, hãy tắt Focus Locka hoặc chọn đúng Wallpaper đang hiển thị trong Shortcut.")
+                    Text("Chỉ cần cài Shortcut 1 lần duy nhất. Từ lần sau bấm “Update Lock Screen” sẽ áp dụng thẳng ra màn hình khóa.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -731,35 +761,42 @@ struct LockWallpaperStudio: View {
     private var shortcutGuideSheet: some View {
         NavigationStack {
             List {
-                Section {
+                Section("Trạng thái Shortcut") {
+                    Toggle("Đã có Shortcut “Update Lock Screen”", isOn: $config.shortcutInstalled)
+                        .tint(Color.accentSky)
+                }
+                Section("Thao tác") {
                     if let shareURL = URL(string: Self.templateShortcutShareURL), !Self.templateShortcutShareURL.isEmpty {
                         Button {
+                            config.shortcutInstalled = true
+                            config.save()
                             openURL(shareURL)
                         } label: {
-                            Label("Cài Shortcut tự động (1 chạm)", systemImage: "plus.app.fill")
-                                .font(.system(size: 15, weight: .bold))
+                            Label("Cài lại Shortcut mẫu (1 chạm)", systemImage: "plus.app.fill")
+                                .font(.system(size: 15, weight: .semibold))
                                 .foregroundStyle(Color.accentSky)
                         }
                     }
                     Button {
-                        runLockScreenShortcut()
+                        showShortcutGuide = false
+                        exportWallpaper()
                     } label: {
-                        Label("Chạy Update Lock Screen ngay ⚡", systemImage: "bolt.fill")
-                            .font(.system(size: 15, weight: .semibold))
+                        Label("Xem trước & Lưu ảnh thủ công", systemImage: "photo")
+                            .font(.system(size: 15))
                     }
                 }
-                Section("Để áp dụng đúng ra Lock Screen") {
-                    Text("1. Tắt chế độ Tập trung (Focus) của Locka ở dưới màn hình khóa (nếu đang bật).")
-                    Text("2. Trong Shortcut “Update Lock Screen”, chọn đúng số Wallpaper mà màn hình khóa hiện tại của bạn đang dùng.")
+                Section("Mẹo tự động cập nhật dữ liệu thật") {
+                    Text("• Thêm tự động hóa Thời gian (ví dụ 00:01, 07:00, 12:00, 18:00) hoặc Khi đóng App để hình nền tự làm mới Thời tiết, Lịch & Cảm xúc.")
+                    Text("• Đặt thêm Widget “Từ vựng hôm nay” ngay dưới đồng hồ Lock Screen để bấm nút ↻ đổi từ trực tiếp không cần mở app!")
                 }
             }
-            .navigationTitle("Tự động cập nhật")
+            .navigationTitle("Cài đặt Shortcut")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Xong") { showShortcutGuide = false }.bold() }
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.medium, .large])
     }
 
     private func runLockScreenShortcut() {
@@ -1129,12 +1166,31 @@ struct GenerateLockWallpaperIntent: AppIntent {
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<IntentFile> {
         let repo = CozyShared.repository
+
+        // Đánh dấu máy đã cài và chạy Shortcut thành công -> trong app chỉ hiện duy nhất nút Update Lock Screen!
+        var cfg = LockLayoutConfig.load()
+        if !cfg.shortcutInstalled {
+            cfg.shortcutInstalled = true
+            cfg.save()
+        }
+
+        // Làm mới dữ liệu thật (iCloud + Thời tiết + Lịch Apple) ngay khi Shortcut chạy ngầm!
+        try? await CloudSync.shared.sync()
+        let weatherService = CozyWeatherService(repository: repo)
+        await weatherService.refreshIfNeeded()
+        if repo.snapshot(reload: true).settings.syncAppleCalendar {
+            let calService = CalendarImportService()
+            let imported = await calService.upcomingEvents(days: 14)
+            for e in imported { repo.upsertEvent(e) }
+        }
+        CozyShared.didChange()
+
         let now = Date()
         let snap = repo.snapshot(reload: true)
         let renderSize = CGSize(width: 393, height: 852)
         let view = LockWallpaperRenderView(
             canvasSize: renderSize,
-            config: LockLayoutConfig.load(),
+            config: cfg,
             bgImage: LockLayoutConfig.loadCustomPhoto(),
             now: now,
             lunar: VietnameseLunarCalendar.lunarDate(from: now, calendar: repo.calendar),

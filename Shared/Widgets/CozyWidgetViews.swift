@@ -1040,27 +1040,38 @@ private struct RectangularAccessory: View {
                 }
 
             case .vocab:
-                // 2. Từ vựng — chữ TO, rõ, 3 dòng chuẩn đẹp
+                // 2. Từ vựng — chữ TO, rõ + nút Đổi từ bấm trực tiếp ngay trên Lock Screen (iOS 17 Interactive Widget)
                 if let w = data.word {
-                    Text(w.word)
-                        .font(.system(size: 19, weight: .bold))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-                        .widgetAccentable()
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text(w.word)
+                            .font(.system(size: 18, weight: .bold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.72)
+                            .widgetAccentable()
+                        Spacer(minLength: 2)
+                        Button(intent: NextVocabIntent()) {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.system(size: 12, weight: .bold))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(Capsule().fill(Color.primary.opacity(0.18)))
+                        }
+                        .buttonStyle(.plain)
+                    }
                     if !w.phonetic.isEmpty {
                         Text(w.phonetic)
-                            .font(.system(size: 12, design: .monospaced))
+                            .font(.system(size: 11.5, design: .monospaced))
                             .opacity(0.78)
                             .lineLimit(1)
                     }
                     if data.config.hideMeaningOnLockScreen {
                         Text(w.meaning)
-                            .font(.system(size: 13.5, weight: .medium))
+                            .font(.system(size: 13, weight: .medium))
                             .lineLimit(1)
                             .privacySensitive()
                     } else {
                         Text(w.meaning)
-                            .font(.system(size: 13.5, weight: .medium))
+                            .font(.system(size: 13, weight: .medium))
                             .lineLimit(1)
                     }
                 } else {

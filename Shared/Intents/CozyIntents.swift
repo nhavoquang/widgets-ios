@@ -35,9 +35,9 @@ struct MarkWordLearnedIntent: AppIntent {
 }
 
 struct NextVocabIntent: AppIntent {
-    static let title: LocalizedStringResource = "Đổi từ khác"
-    static let description = IntentDescription("Bỏ qua từ hiện tại, hiện một từ khác.")
-    static let isDiscoverable: Bool = false
+    static let title: LocalizedStringResource = "Đổi từ vựng khác"
+    static let description = IntentDescription("Bỏ qua từ hiện tại, hiện ngay một từ vựng khác trên Widget và Màn hình khóa.")
+    static let isDiscoverable: Bool = true
 
     func perform() async throws -> some IntentResult {
         CozyShared.repository.skipCurrentWord()
