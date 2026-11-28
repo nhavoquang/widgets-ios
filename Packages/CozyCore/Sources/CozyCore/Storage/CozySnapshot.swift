@@ -38,6 +38,9 @@ public struct UserSettings: Codable, Hashable, Sendable {
     public var hapticsEnabled: Bool
     public var weatherLocation: WeatherLocationPreset
     public var language: AppLanguage
+    public var isProUnlocked: Bool
+    public var quickLaunchSlots: [QuickLaunchPreset]
+    public var customQuickLaunchURL: String
 
     public init(
         displayName: String = "Me",
@@ -52,7 +55,10 @@ public struct UserSettings: Codable, Hashable, Sendable {
         appearance: AppAppearance = .system,
         hapticsEnabled: Bool = true,
         weatherLocation: WeatherLocationPreset = .autoGPS,
-        language: AppLanguage = .system
+        language: AppLanguage = .system,
+        isProUnlocked: Bool = false,
+        quickLaunchSlots: [QuickLaunchPreset] = [.addTask, .calendarApp, .spotify, .chatgpt],
+        customQuickLaunchURL: String = ""
     ) {
         self.displayName = displayName
         self.species = species
@@ -67,10 +73,13 @@ public struct UserSettings: Codable, Hashable, Sendable {
         self.hapticsEnabled = hapticsEnabled
         self.weatherLocation = weatherLocation
         self.language = language
+        self.isProUnlocked = isProUnlocked
+        self.quickLaunchSlots = quickLaunchSlots
+        self.customQuickLaunchURL = customQuickLaunchURL
     }
 
     private enum CodingKeys: String, CodingKey {
-        case displayName, species, activeDecks, shareWeatherWithSpaces, shareDeviceBattery, syncAppleCalendar, syncAppleReminders, weekStartDay, hasOnboarded, appearance, hapticsEnabled, weatherLocation, language
+        case displayName, species, activeDecks, shareWeatherWithSpaces, shareDeviceBattery, syncAppleCalendar, syncAppleReminders, weekStartDay, hasOnboarded, appearance, hapticsEnabled, weatherLocation, language, isProUnlocked, quickLaunchSlots, customQuickLaunchURL
     }
 
     public init(from decoder: Decoder) throws {
@@ -88,6 +97,9 @@ public struct UserSettings: Codable, Hashable, Sendable {
         self.hapticsEnabled = try c.decodeIfPresent(Bool.self, forKey: .hapticsEnabled) ?? true
         self.weatherLocation = try c.decodeIfPresent(WeatherLocationPreset.self, forKey: .weatherLocation) ?? .autoGPS
         self.language = try c.decodeIfPresent(AppLanguage.self, forKey: .language) ?? .system
+        self.isProUnlocked = try c.decodeIfPresent(Bool.self, forKey: .isProUnlocked) ?? false
+        self.quickLaunchSlots = try c.decodeIfPresent([QuickLaunchPreset].self, forKey: .quickLaunchSlots) ?? [.addTask, .calendarApp, .spotify, .chatgpt]
+        self.customQuickLaunchURL = try c.decodeIfPresent(String.self, forKey: .customQuickLaunchURL) ?? ""
     }
 }
 

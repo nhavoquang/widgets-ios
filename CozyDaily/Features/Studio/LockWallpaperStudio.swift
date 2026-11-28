@@ -307,6 +307,21 @@ struct LockLayoutConfig: Equatable, Codable {
         return rows
     }
 
+    /// Kiểm tra xem cấu hình hiện tại có dùng tính năng nâng cao của gói Pro hay không.
+    /// Miễn phí: dùng thoải mái 1–2 cột, tối đa 4 khối cơ bản, nền màu tiêu chuẩn.
+    /// Pro: lưới 3–4 cột (`spanTwelfths <= 4`), > 4 khối, Lưới 365 chấm, Multi-Countdown, Ảnh cá nhân hoặc Viền Neon.
+    var usesProFeatures: Bool {
+        if bg == .photo || cardStyle == .glowingBorder { return true }
+        if items.count > 4 { return true }
+        let proKinds: Set<LockBlockKind> = [.yearDots, .multiCountdown, .monthGrid]
+        for item in items {
+            if item.spanTwelfths <= 4 || proKinds.contains(item.kind) {
+                return true
+            }
+        }
+        return false
+    }
+
     private static var sharedDefaults: UserDefaults {
         if let group = SnapshotStore.activeAppGroupID, let d = UserDefaults(suiteName: group) {
             return d
@@ -600,6 +615,7 @@ struct LockWallpaperStudio: View {
     @State private var showExportSheet = false
     @State private var showShortcutGuide = false
     @State private var showAddBlock = false
+    @State private var showPaywall = false
 
     enum EditorTab: String, CaseIterable, Identifiable {
         case templates, layout, style, background
@@ -649,6 +665,11 @@ struct LockWallpaperStudio: View {
         .sheet(isPresented: $showAddBlock) { addBlockSheet }
         .sheet(isPresented: $showExportSheet) { exportSheet }
         .sheet(isPresented: $showShortcutGuide) { shortcutGuideSheet }
+        .sheet(isPresented: $showPaywall) {
+            PaywallSheet {
+                applyAfterProCheck()
+            }
+        }
     }
 
     // MARK: Top Bar
@@ -658,6 +679,22 @@ struct LockWallpaperStudio: View {
             Text("Lock Studio")
                 .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(.white)
+            if !model.settings.isProUnlocked {
+                Button {
+                    Haptics.tap()
+                    showPaywall = true
+                } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: "crown.fill").font(.system(size: 10, weight: .bold))
+                        Text("PRO").font(.system(size: 10.5, weight: .heavy, design: .rounded))
+                    }
+                    .foregroundStyle(.black)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Capsule().fill(Color.accentHoney))
+                }
+                .buttonStyle(.plain)
+            }
             Spacer()
             Button {
                 Haptics.tap()
@@ -674,14 +711,14 @@ struct LockWallpaperStudio: View {
 
             Button {
                 Haptics.tap()
-                if config.shortcutInstalled {
-                    runLockScreenShortcut()
+                if config.usesProFeatures && !model.settings.isProUnlocked {
+                    showPaywall = true
                 } else {
-                    exportWallpaper()
+                    applyAfterProCheck()
                 }
             } label: {
                 HStack(spacing: 5) {
-                    Image(systemName: "arrow.triangle.2.circlepath")
+                    Image(systemName: (config.usesProFeatures && !model.settings.isProUnlocked) ? "crown.fill" : "arrow.triangle.2.circlepath")
                         .font(.system(size: 12, weight: .bold))
                     Text("Update Lock Screen")
                         .font(.system(size: 13, weight: .bold))
@@ -694,6 +731,15 @@ struct LockWallpaperStudio: View {
             .buttonStyle(.plain)
         }
         .padding(.top, 4)
+    }
+
+    @MainActor
+    private func applyAfterProCheck() {
+        if config.shortcutInstalled {
+            runLockScreenShortcut()
+        } else {
+            exportWallpaper()
+        }
     }
 
     // MARK: Live Lock Screen Canvas (Kéo lên/xuống để dời khối + Kéo thả trực tiếp ở tab Bố cục)

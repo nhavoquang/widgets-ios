@@ -51,6 +51,16 @@ struct RootTabView: View {
                 .tabItem { Label(CozyL10n.t("tab.studio", lang: lang), systemImage: "iphone") }
                 .tag(AppTab.studio)
         }
+        .onChange(of: model.requestedTab) { _, target in
+            guard let target else { return }
+            switch target {
+            case "studio": tab = .studio
+            case "calendar": tab = .calendar
+            case "connect": tab = .connect
+            default: tab = .today
+            }
+            model.requestedTab = nil
+        }
     }
 }
 

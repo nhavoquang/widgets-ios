@@ -264,5 +264,13 @@ final class SpaceMergeTests: XCTestCase {
         XCTAssertEqual(sampleWord.localizedMeaning(for: .vi), "ăn nhanh một chút")
         XCTAssertEqual(sampleWord.localizedMeaning(for: .en), "get something quick to eat")
         XCTAssertEqual(sampleWord.localizedMeaning(for: .ja), "get something quick to eat")
+
+        // Kiểm tra cấu hình StoreKit 2 ProPlanKind & Quick Launcher mặc định an toàn
+        XCTAssertEqual(decoded.isProUnlocked, false)
+        XCTAssertEqual(decoded.quickLaunchSlots.count, 4)
+        XCTAssertEqual(ProPlanKind.yearly.fallbackDisplayPrice(for: .vi), "69.000₫")
+        XCTAssertEqual(ProPlanKind.lifetime.fallbackDisplayPrice(for: .vi), "139.000₫")
+        XCTAssertEqual(ProPlanKind.yearly.fallbackDisplayPrice(for: .en), "$9.99")
+        XCTAssertEqual(ProPlanKind.lifetime.fallbackDisplayPrice(for: .en), "$24.99")
     }
 }

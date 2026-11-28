@@ -17,9 +17,11 @@ final class AppModel {
     let weather: CozyWeatherService
     let speech = SpeechService()
     let calendarImport = CalendarImportService()
+    let subscriptions: SubscriptionManager
     private let syncTrigger = CloudSyncTrigger()
     private(set) var cloudError: String?
     var incomingPartnerToast: String?
+    var requestedTab: String?
 
     init(repository: CozyRepository = CozyShared.repository) {
         self.repository = repository
@@ -27,6 +29,7 @@ final class AppModel {
         self.snapshot = loaded
         CozyL10n.current = loaded.settings.language
         self.weather = CozyWeatherService(repository: repository)
+        self.subscriptions = SubscriptionManager(repository: repository)
         repository.syncEngine = syncTrigger
         self.currentWord = repository.currentWord()
         Haptics.isEnabled = loaded.settings.hapticsEnabled
@@ -60,9 +63,22 @@ final class AppModel {
             let rems = await calendarImport.todayReminders(now: now)
             for r in rems { repository.upsertTask(r) }
         }
+        await subscriptions.refreshStoreState()
         await weather.refreshIfNeeded()
         await syncCloud()
         commit()
+    }
+
+    func purchasePlan(_ plan: ProPlanKind) async -> Bool {
+        let ok = await subscriptions.purchase(plan)
+        if ok { commit() }
+        return ok
+    }
+
+    func restorePurchases() async -> Bool {
+        let ok = await subscriptions.restorePurchases()
+        if ok { commit() }
+        return ok
     }
 
     func syncCloud() async {
@@ -225,10 +241,17 @@ final class AppModel {
     }
 
     func handleIncomingURL(_ url: URL) {
+        if url.scheme?.lowercased() == "cozydaily", url.host?.lowercased() == "open" {
+            if let comps = URLComponents(url: url, resolvingAgainstBaseURL: false),
+               let tabVal = comps.queryItems?.first(where: { $0.name == "tab" })?.value {
+                requestedTab = tabVal
+            }
+            return
+        }
         guard let update = PartnerStatusLink.parse(url) else { return }
         repository.applyIncomingPartner(update)
         Haptics.success()
-        incomingPartnerToast = "Đã cập nhật cảm xúc của \(update.name) ✨"
+        incomingPartnerToast = "✨ \(update.name)"
         commit()
     }
 

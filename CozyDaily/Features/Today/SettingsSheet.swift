@@ -7,8 +7,10 @@ struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var name = ""
+    @State private var customURLText = ""
     @State private var confirmClear = false
     @State private var showAdvanced = false
+    @State private var showPaywall = false
 
     var body: some View {
         NavigationStack {
@@ -16,9 +18,11 @@ struct SettingsSheet: View {
                 CozyAmbientBackground()
                 ScrollView {
                     VStack(spacing: 14) {
+                        proMembershipCard
                         profileCard
                         languageCard
                         appearanceCard
+                        quickLauncherCard
                         weatherLocationCard
                         vocabDecksCard
                         sharingCard
@@ -40,8 +44,12 @@ struct SettingsSheet: View {
                     .bold()
                 }
             }
-            .onAppear { name = model.settings.displayName }
+            .onAppear {
+                name = model.settings.displayName
+                customURLText = model.settings.customQuickLaunchURL
+            }
             .onDisappear { commitName() }
+            .sheet(isPresented: $showPaywall) { PaywallSheet() }
             .confirmationDialog("Xóa dữ liệu mẫu cũ?", isPresented: $confirmClear, titleVisibility: .visible) {
                 Button("Xóa dữ liệu mẫu", role: .destructive) {
                     model.removeDemoData()
@@ -50,6 +58,107 @@ struct SettingsSheet: View {
             }
         }
         .presentationCornerRadius(24)
+    }
+
+    private var proMembershipCard: some View {
+        let lang = model.settings.language
+        let isPro = model.settings.isProUnlocked
+        return Button {
+            Haptics.tap()
+            if !isPro { showPaywall = true }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "crown.fill")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(isPro ? Color.accentSage : Color.accentHoney)
+                    .frame(width: 42, height: 42)
+                    .background(Circle().fill((isPro ? Color.accentSage : Color.accentHoney).opacity(0.16)))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(isPro ? CozyL10n.t("pro.activeTitle", lang: lang) : CozyL10n.t("pro.headline", lang: lang))
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(Color.inkCoffee)
+                        .lineLimit(1)
+                    Text(isPro ? CozyL10n.t("pro.plan.lifetimeDesc", lang: lang) : "\(model.subscriptions.displayPrice(for: .yearly)) / yr · \(model.subscriptions.displayPrice(for: .lifetime)) Lifetime")
+                        .font(.system(size: 12.5, weight: .medium))
+                        .foregroundStyle(Color.inkTaupe)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+                if !isPro {
+                    Text("PRO")
+                        .font(.system(size: 11, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 5)
+                        .background(Capsule().fill(Color.accentHoney))
+                }
+            }
+            .cozyCard(padding: 14)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var quickLauncherCard: some View {
+        let lang = model.settings.language
+        let slots = model.settings.quickLaunchSlots
+        return VStack(alignment: .leading, spacing: 10) {
+            CozySectionHeader(
+                title: CozyL10n.t("launcher.title", lang: lang),
+                symbol: "bolt.horizontal.circle.fill",
+                accent: .accentSky,
+                trailing: "4 slots"
+            )
+
+            HStack(spacing: 8) {
+                ForEach(0..<4, id: \.self) { idx in
+                    let current = idx < slots.count ? slots[idx] : QuickLaunchPreset.allCases[idx]
+                    Menu {
+                        ForEach(QuickLaunchPreset.allCases) { option in
+                            Button {
+                                Haptics.tap()
+                                model.updateSettings { s in
+                                    while s.quickLaunchSlots.count < 4 {
+                                        s.quickLaunchSlots.append(.addTask)
+                                    }
+                                    s.quickLaunchSlots[idx] = option
+                                }
+                            } label: {
+                                Label(option.title, systemImage: option.symbolName)
+                            }
+                        }
+                    } label: {
+                        VStack(spacing: 5) {
+                            Image(systemName: current.symbolName)
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(Color.accentSky)
+                                .frame(width: 38, height: 38)
+                                .background(Circle().fill(Color.accentSky.opacity(0.14)))
+                            Text(current.title)
+                                .font(.system(size: 10.5, weight: .semibold))
+                                .foregroundStyle(Color.inkCoffee)
+                                .lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(Color.bgCream))
+                    }
+                }
+            }
+
+            if slots.contains(.customURL) {
+                TextField("URL Scheme / QR Link (vd: momo://, zalo://, https://...)", text: $customURLText)
+                    .font(.system(size: 13, design: .monospaced))
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .padding(10)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.bgCream))
+                    .onChange(of: customURLText) { _, val in
+                        model.updateSettings { $0.customQuickLaunchURL = val.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    }
+            }
+        }
+        .cozyCard(padding: 14)
     }
 
     private var profileCard: some View {

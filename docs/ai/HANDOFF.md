@@ -1,21 +1,17 @@
-# Session Handoff — Stage 1 Completed (`Widgets: Lock Screen Calendar`)
+# Session Handoff — Stage 2 Completed (`Widgets: Lock Screen Calendar`)
 
-## Vừa hoàn thành (Chặng 1 — Viral Features & Global Content)
-- `Packages/CozyCore/Sources/CozyCore/Data/DailyQuotes.swift` + `VocabSeed.swift` + `Models/Vocab.swift`:
-  - Bộ **Daily Quotes / Stoic & Focus Affirmations** đủ **15 ngôn ngữ** + tự động hiển thị định nghĩa Anh–Anh chuẩn cho kho từ vựng khi ngôn ngữ máy khác Tiếng Việt.
-  - Thêm `WeekStartDay` (`.monday` / `.sunday`) và `syncAppleReminders` vào `UserSettings` (tương thích ngược JSON cũ).
-- `CozyDaily/App/Services.swift` + `AppModel.swift` + `SettingsSheet.swift` + `project.yml`:
-  - Tích hợp đồng bộ **Apple Reminders (`EKReminder`)** tự động đưa nhắc việc hôm nay lên Lock Screen & Shortcut chạy ngầm.
-  - Thêm chọn **Ngày bắt đầu tuần (Thứ Hai / Chủ Nhật)** và công tắc **Đồng bộ Lời nhắc** ngay trong Cài đặt.
-- `CozyDaily/Features/Studio/LockWallpaperStudio.swift`:
-  - Thêm 3 khối ăn khách mới (nâng tổng lên **15 loại khối** & **18 mẫu dựng sẵn**):
-    1. **Lưới 365 chấm Year Progress (`yearDots`)** — vẽ tĩnh 37×10 không dùng `LazyVGrid`, chấm ngày hôm nay phát sáng.
-    2. **Thanh đếm nhiều sự kiện (`multiCountdown`)** — thanh progress màu sắc kiểu *Pretty Progress*.
-    3. **Câu nói truyền cảm hứng (`dailyQuote`)** — tự đổi theo 15 ngôn ngữ.
-  - Thêm thanh trượt **Độ tối ảnh nền (`photoDim`)** & **Độ mờ ảnh nền (`photoBlur`)** khi người dùng chọn ảnh cá nhân từ Thư viện.
+## Vừa hoàn thành (Chặng 2 — StoreKit 2 Paywall & Quick Launcher)
+- `Packages/CozyCore/Sources/CozyCore/Models/Monetization.swift` + `Localization.swift` + `CozySnapshot.swift`:
+  - Khai báo 2 mã IAP chuẩn: `com.cozydaily.app.pro.yearly` (**69.000₫ / \$9.99**) và `com.cozydaily.app.pro.lifetime` (**139.000₫ / \$24.99**), kèm từ điển Paywall đủ **15 ngôn ngữ**.
+  - Lưu trạng thái `isProUnlocked`, `quickLaunchSlots` (4 ô) và `customQuickLaunchURL` trong `UserSettings` (App Group).
+- `CozyDaily/Features/Paywall/SubscriptionManager.swift`, `PaywallSheet.swift`, `CozyDaily/Resources/Products.storekit`, `PRIVACY.md`:
+  - StoreKit 2 thuần Apple tự tải mệnh giá tiền tệ thực tế trên Store từng nước, có nút **Restore Purchases**, link **Terms (Apple Standard EULA)** & **Privacy Policy** đạt chuẩn App Review 3.1.2.
+  - Luồng chuyển đổi cao **Preview-First** trong `LockWallpaperStudio.swift`: user được kéo thả, thử mẫu VIP, thử lưới 3–4 cột & ảnh nền Blur/Dim thoải mái trên màn hình thử; chỉ khi bấm `Update Lock Screen` với tính năng Pro mới hiện Paywall (và vừa mua xong tự động áp dụng hình nền ngay!).
+- `CozyWidgets/CozyWidgetsBundle.swift` + `SettingsSheet.swift`:
+  - Thêm **Quick Launcher Widget** (1 chạm mở Việc mới, Lock Studio, Lịch, Reminders, Spotify, ChatGPT, Google Maps hoặc link QR Ngân hàng/MoMo tùy chỉnh ngay từ Lock Screen).
 - Kiểm chứng: `swift test --package-path Packages/CozyCore` — **40/40 PASS**.
 
-## Prompt mẫu mở session mới làm Chặng 2 (Copy-paste)
+## Prompt mẫu mở session mới làm Chặng 3 (Copy-paste)
 ```text
-Đọc docs/ai/HANDOFF.md và docs/ai/TASK_QUEUE.md, triển khai Chặng 2: Tích hợp StoreKit 2 Paywall hiện đại (gói Yearly 59k-79k & Lifetime 139k tự động hiển thị giá bản địa theo Store từng nước + Restore Purchases, cho thử tính năng Pro trên Preview trước khi hiện Paywall) và thêm Quick Launcher Lock Screen Widget.
+Đọc docs/ai/HANDOFF.md và docs/ai/TASK_QUEUE.md, hoàn thiện Chặng 3: Tạo cẩm nang nộp App Store Connect toàn diện tại docs/ai/APP_STORE_SUBMISSION.md (bộ Title + Subtitle + 100-char Keywords tối ưu SEO đủ 15 ngôn ngữ, hướng dẫn tạo 2 gói IAP Yearly 69k / Lifetime 139k & set giá theo quốc gia, kịch bản 6 ảnh Screenshot và Checklist vượt App Review).
 ```

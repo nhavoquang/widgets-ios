@@ -1,23 +1,13 @@
 # Task Queue — Commercial Global Launch (`Widgets: Lock Screen Calendar`)
 
-> Mỗi Chặng (Stage) làm gọn trong 1 session để tiết kiệm token và kiểm chứng kỹ lưỡng trước khi sang chặng kế tiếp.
-
-## Lộ trình 3 Chặng Thương mại hóa App Store Toàn cầu (15 ngôn ngữ)
-
 - [x] **Chặng 1 (Đã hoàn thành): Tính năng Viral TikTok, Apple Reminders & Quốc tế hóa nội dung**
-  - Khối **Lưới 365 chấm Year Progress (`yearDots`)** + **Thanh đếm nhiều sự kiện (`multiCountdown`)** kiểu *Pretty Progress / Locka*.
-  - Khối **Daily Quote / Stoic Focus Affirmations** dịch chuẩn 15 ngôn ngữ + tự động chuyển giải nghĩa Từ vựng sang **Anh–Anh** trên máy khách quốc tế.
-  - Đồng bộ **Apple Reminders (`EKReminder`)** gộp chung với Apple Calendar & Việc hôm nay.
-  - Tùy chọn **Bắt đầu tuần từ Thứ Hai hoặc Chủ Nhật (`WeekStartDay`)** + thanh kéo **Làm tối & Làm mờ ảnh nền cá nhân (`photoDim`, `photoBlur`)**.
+- [x] **Chặng 2 (Đã hoàn thành): StoreKit 2 Paywall Thương mại (Yearly 69k + Lifetime 139k) & Quick Launcher Widget**
+  - Tích hợp `SubscriptionManager.swift` (StoreKit 2 thuần Apple) + `PaywallSheet.swift` 15 ngôn ngữ + `Products.storekit` + `PRIVACY.md`.
+  - Cơ chế **Preview-First**: cho người dùng thiết kế thử thoải mái 3–4 cột, 365 chấm, ảnh nền Blur/Dim trên màn hình Live Preview; khi bấm `Update Lock Screen` với tính năng Pro mới bật Paywall sang trọng (chọn sẵn gói Lifetime -53%).
+  - Thêm **Quick Launcher Widget** 4 ô dưới đồng hồ Lock Screen (mở nhanh Việc mới, Lịch, Spotify, ChatGPT hoặc QR/URL tùy chỉnh).
 
-- [ ] **Chặng 2 (Tiếp theo): StoreKit 2 Paywall Thương mại (Yearly 59k–79k + Lifetime 139k) & Quick Launcher / Live Activities**
-  - Tích hợp **StoreKit 2** thuần Apple (`SubscriptionManager.swift` + `PaywallSheet.swift` + file `.storekit` test local):
-    - 2 gói chiến lược: **Pro Yearly** (59k–79k VNĐ / \$9.99–\$14.99 Tier 1) & **Early Bird Lifetime** (139k VNĐ / \$24.99 Tier 1 — mặc định nổi bật để chốt đơn trọn đời).
-    - Nút **Restore Purchases (Khôi phục giao dịch)** + điều khoản rõ ràng đạt 100% chuẩn App Store Review Guideline 3.1.2.
-    - Cho phép người dùng **thiết kế thử mọi tính năng Pro trên Live Preview**, chỉ bật Paywall sang trọng khi bấm `Update Lock Screen` nếu đang dùng tính năng Pro (3–4 cột, 365 chấm, ảnh nền Blur/Dim, mẫu VIP).
-  - Thêm **Quick Launcher Widget** trên dải Lock Screen dưới đồng hồ (mở nhanh QR Ngân hàng, Camera, ChatGPT, Spotify, Thêm việc nhanh).
-
-- [ ] **Chặng 3: Bộ hồ sơ nộp App Store Connect (ASO 15 ngôn ngữ + Privacy Policy + Review Checklist)**
-  - Tạo trang `PrivacyPolicy.md` (host miễn phí trên GitHub Pages của repo) + link điều khoản sử dụng chuẩn Apple (`EULA`).
-  - Xuất bảng **Title + Subtitle + 100-char Keywords + Promotional Text** đã tối ưu SEO cho đủ **15 ngôn ngữ** để copy-paste lên App Store Connect.
-  - Rà soát toàn bộ quyền (`InfoPlist.xcstrings`), cấu hình giá theo từng quốc gia (Tier 1 vs VN/SEA) và kịch bản quay video App Preview.
+- [ ] **Chặng 3 (Cuối cùng): Bảng ASO Metadata 15 ngôn ngữ App Store Connect + Bảng giá theo Quốc gia & Checklist Duyệt App**
+  - Xuất tài liệu `docs/ai/APP_STORE_SUBMISSION.md` hoàn chỉnh để copy-paste thẳng lên App Store Connect:
+    1. Bảng **App Name (30 ký tự) + Subtitle (30 ký tự) + Keywords (100 ký tự) + Mô tả ngắn** tối ưu SEO cho đủ **15 ngôn ngữ**.
+    2. Hướng dẫn tạo 2 mã In-App Purchase (`com.cozydaily.app.pro.yearly` & `com.cozydaily.app.pro.lifetime`) và bảng set giá tối ưu doanh thu (69k/139k cho VN & SEA; \$9.99/\$24.99 cho Mỹ/Nhật/Hàn/Âu).
+    3. Kịch bản 6 tấm Screenshot App Store chuyển đổi cao + Checklist vượt qua App Review ngay lần nộp đầu tiên.

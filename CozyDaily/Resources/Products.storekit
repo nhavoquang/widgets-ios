@@ -1,0 +1,78 @@
+{
+  "identifier" : "E8C14900-B9B5-4C81-9F1A-001122334455",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "139000",
+      "familyShareable" : true,
+      "internalID" : "PRO_LIFETIME_001",
+      "localizations" : [
+        {
+          "description" : "Unlock all Lock Screen Studio templates, 3-4 column grids & 365 dots forever.",
+          "displayName" : "Widgets Pro Lifetime",
+          "locale" : "en_US"
+        },
+        {
+          "description" : "Mở khóa vĩnh viễn toàn bộ mẫu Lock Studio, lưới 3-4 cột & 365 chấm.",
+          "displayName" : "Widgets Pro Trọn Đời",
+          "locale" : "vi"
+        }
+      ],
+      "productID" : "com.cozydaily.app.pro.lifetime",
+      "referenceName" : "Widgets Pro Lifetime",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "100000001",
+    "_developerTeamID" : "",
+    "_lastSynchronizedDate" : 786000000
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "PRO_GROUP_001",
+      "localizations" : [
+
+      ],
+      "name" : "Widgets Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "69000",
+          "familyShareable" : true,
+          "groupNumber" : 1,
+          "internalID" : "PRO_YEARLY_001",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "12 months full access to Lock Screen Studio Pro.",
+              "displayName" : "Widgets Pro Yearly",
+              "locale" : "en_US"
+            },
+            {
+              "description" : "12 tháng sử dụng trọn bộ tính năng Lock Studio Pro.",
+              "displayName" : "Widgets Pro Theo Năm",
+              "locale" : "vi"
+            }
+          ],
+          "productID" : "com.cozydaily.app.pro.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Widgets Pro Yearly",
+          "subscriptionGroupID" : "PRO_GROUP_001",
+          "type" : "AutoRenewable"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

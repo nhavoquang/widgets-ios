@@ -6,6 +6,7 @@ import CozyCore
 struct CozyWidgetsBundle: WidgetBundle {
     var body: some Widget {
         TodayScheduleWidget()
+        QuickLauncherWidget()
         VocabWidget()
         WeatherCozyWidget()
         CoupleWidget()
@@ -135,6 +136,69 @@ struct EventWidget: Widget {
         .configurationDisplayName("Đếm ngày")
         .description("Đếm ngược, đếm tiến, âm lịch, lịch tuần và deadline.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular, .accessoryCircular, .accessoryInline])
+    }
+}
+
+/// Quick Launcher Widget: Mở nhanh 4 ứng dụng / QR / Thêm việc chỉ với 1 chạm ngay từ dải dưới đồng hồ Lock Screen!
+struct QuickLauncherWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "CozyQuickLauncherWidget", provider: FixedProvider(content: .combo)) { entry in
+            QuickLauncherWidgetView(data: entry.data)
+                .containerBackground(for: .widget) { Color.clear }
+        }
+        .configurationDisplayName("Quick Launcher")
+        .description("1-tap shortcuts to launch Tasks, Calendar, Spotify, ChatGPT or QR links right from your Lock Screen.")
+        .supportedFamilies([.accessoryRectangular, .accessoryCircular, .systemMedium])
+    }
+}
+
+struct QuickLauncherWidgetView: View {
+    @Environment(\.widgetFamily) private var family
+    var data: CozyWidgetData
+
+    private func targetURL(for preset: QuickLaunchPreset, settings: UserSettings) -> URL {
+        if preset == .customURL,
+           !settings.customQuickLaunchURL.isEmpty,
+           let u = URL(string: settings.customQuickLaunchURL) {
+            return u
+        }
+        return URL(string: preset.defaultURLString) ?? URL(string: "cozydaily://open?tab=today")!
+    }
+
+    var body: some View {
+        let settings = CozyShared.repository.snapshot(reload: true).settings
+        let slots = settings.quickLaunchSlots.isEmpty ? [.addTask, .calendarApp, .spotify, .chatgpt] : settings.quickLaunchSlots
+
+        switch family {
+        case .accessoryCircular:
+            let first = slots[0]
+            Link(destination: targetURL(for: first, settings: settings)) {
+                ZStack {
+                    AccessoryWidgetBackground()
+                    Image(systemName: first.symbolName)
+                        .font(.system(size: 18, weight: .bold))
+                        .widgetAccentable()
+                }
+            }
+        default:
+            HStack(spacing: 8) {
+                ForEach(Array(slots.prefix(4).enumerated()), id: \.offset) { _, item in
+                    Link(destination: targetURL(for: item, settings: settings)) {
+                        VStack(spacing: 4) {
+                            Image(systemName: item.symbolName)
+                                .font(.system(size: family == .systemMedium ? 18 : 14, weight: .bold))
+                                .frame(width: family == .systemMedium ? 42 : 30, height: family == .systemMedium ? 42 : 30)
+                                .background(Circle().fill(Color.primary.opacity(0.16)))
+                                .widgetAccentable()
+                            Text(item.title)
+                                .font(.system(size: family == .systemMedium ? 11 : 9, weight: .semibold))
+                                .lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                }
+            }
+        }
     }
 }
 

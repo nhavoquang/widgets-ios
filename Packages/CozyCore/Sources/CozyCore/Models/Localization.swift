@@ -593,6 +593,133 @@ public enum CozyL10n {
             .zhHans: "同步苹果提醒事项", .zhHant: "同步提醒事項", .es: "Sincronizar Recordatorios", .fr: "Synchroniser Rappels",
             .de: "Erinnerungen synchr.", .ptBR: "Sincronizar Lembretes", .th: "ซิงค์เตือนความจำ",
             .id: "Sinkron Pengingat", .ru: "Синхр. Напоминания", .it: "Sincronizza Promemoria", .ar: "مزامنة التذكيرات"
+        ],
+        // Paywall & Pro (15 Languages)
+        "pro.badge": [
+            .en: "PRO", .vi: "PRO", .ja: "PRO", .ko: "PRO", .zhHans: "PRO", .zhHant: "PRO",
+            .es: "PRO", .fr: "PRO", .de: "PRO", .ptBR: "PRO", .th: "PRO", .id: "PRO", .ru: "PRO", .it: "PRO", .ar: "PRO"
+        ],
+        "pro.headline": [
+            .en: "Unlock Full Lock Screen Studio",
+            .vi: "Mở khóa trọn bộ Lock Studio Pro",
+            .ja: "すべてのロック画面機能を解放",
+            .ko: "잠금 화면 스튜디오 전체 잠금 해제",
+            .zhHans: "解锁全部锁屏高级功能",
+            .zhHant: "解鎖全部鎖定畫面進階功能",
+            .es: "Desbloquea todo Lock Studio Pro",
+            .fr: "Débloquez tout Lock Studio Pro",
+            .de: "Alle Pro-Sperrbildschirme freischalten",
+            .ptBR: "Desbloqueie tudo no Lock Studio Pro",
+            .th: "ปลดล็อกฟีเจอร์หน้าจอล็อกทั้งหมด",
+            .id: "Buka Semua Fitur Lock Studio Pro",
+            .ru: "Откройте все функции Lock Studio Pro",
+            .it: "Sblocca tutto Lock Studio Pro",
+            .ar: "افتح جميع ميزات الاستوديو الاحترافية"
+        ],
+        "pro.subheadline": [
+            .en: "3–4 column Bento grids, 365 Year Dots, custom photo blur, Reminders sync & all 18+ templates.",
+            .vi: "Chia lưới 3–4 cột, Lưới 365 chấm Năm, Ảnh nền cá nhân làm mờ, Lời nhắc & toàn bộ 18+ mẫu hiện đại.",
+            .ja: "3〜4列グリッド、365日ドット、写真ぼかし、リマインダー同期、全テンプレート使い放題。",
+            .ko: "3~4열 벤토 그리드, 365 도트, 배경 블러, 미리 알림 동기화 및 모든 프리미엄 템플릿.",
+            .zhHans: "支持3–4列自由排版、365天进度点阵、自定义照片模糊与全部高级模板。",
+            .zhHant: "支援3–4欄自由排版、365天進度點陣、自訂照片模糊與全部進階模板。",
+            .es: "Cuadrículas de 3–4 columnas, 365 puntos anuales, desenfoque de fotos y todas las plantillas.",
+            .fr: "Grilles 3–4 colonnes, 365 points annuels, flou photo et tous les modèles.",
+            .de: "3–4 Spalten Bento-Raster, 365-Tage-Punkte, Foto-Unschärfe & alle Vorlagen.",
+            .ptBR: "Grades de 3–4 colunas, 365 pontos do ano, desfoque de foto e todos os modelos.",
+            .th: "แบ่งตาราง 3–4 คอลัมน์, 365 จุดรายปี, เบลอรูปพื้นหลัง และเทมเพลตทั้งหมด",
+            .id: "Grid Bento 3–4 kolom, 365 Titik Tahun, blur foto pribadi & semua templat.",
+            .ru: "Сетка в 3–4 колонки, 365 точек года, размытие фото и все премиум-шаблоны.",
+            .it: "Griglie a 3–4 colonne, 365 punti dell’anno, sfocatura foto e tutti i modelli.",
+            .ar: "شبكة ٣–٤ أعمدة، ٣٦٥ نقطة سنوية، تمويه الصور وجميع القوالب."
+        ],
+        "pro.plan.lifetime": [
+            .en: "Lifetime Access", .vi: "Trọn đời (Mua 1 lần)", .ja: "買い切り（永久ライセンス）", .ko: "평생 소장 (1회 결제)",
+            .zhHans: "终身买断（一次付费）", .zhHant: "終身買斷（一次付費）", .es: "Acceso de por vida", .fr: "Accès à vie",
+            .de: "Lebenslanger Zugriff", .ptBR: "Acesso Vitalício", .th: "ตลอดชีพ (จ่ายครั้งเดียว)",
+            .id: "Seumur Hidup (Sekali Bayar)", .ru: "Навсегда (разовый платёж)", .it: "Accesso a vita", .ar: "مدى الحياة (دفعة واحدة)"
+        ],
+        "pro.plan.lifetimeDesc": [
+            .en: "Pay once, own forever · No recurring fees",
+            .vi: "Thanh toán 1 lần duy nhất · Sở hữu vĩnh viễn",
+            .ja: "追加料金なし・ずっと使える一番お得なプラン",
+            .ko: "추가 요금 없이 평생 모든 업데이트 제공",
+            .zhHans: "一次购买永久使用，无后续订阅费",
+            .zhHant: "一次購買永久使用，無後續訂閱費",
+            .es: "Un solo pago para siempre · Sin cargos recurrentes",
+            .fr: "Payez une fois, gardez pour toujours",
+            .de: "Einmal zahlen, für immer nutzen",
+            .ptBR: "Pague uma vez, use para sempre",
+            .th: "จ่ายครั้งเดียวจบ ไม่มีรายเดือน",
+            .id: "Bayar sekali, miliki selamanya",
+            .ru: "Один платёж навсегда · Без подписок",
+            .it: "Paga una volta, tuo per sempre",
+            .ar: "ادفع مرة واحدة وامتلكه للأبد"
+        ],
+        "pro.plan.bestValue": [
+            .en: "BEST VALUE -53%", .vi: "HỜI NHẤT -53%", .ja: "一番人気 -53%", .ko: "최고 혜택 -53%",
+            .zhHans: "超值推荐 -53%", .zhHant: "超值推薦 -53%", .es: "MEJOR OFERTA -53%", .fr: "MEILLEURE OFFRE -53%",
+            .de: "BESTER DEAL -53%", .ptBR: "MELHOR OFERTA -53%", .th: "คุ้มที่สุด -53%",
+            .id: "PALING HEMAT -53%", .ru: "ВЫГОДНО -53%", .it: "PIÙ SCELTO -53%", .ar: "الأفضل قيمة -٥٣٪"
+        ],
+        "pro.plan.yearly": [
+            .en: "Yearly Plan", .vi: "Gói Theo Năm", .ja: "年額プラン", .ko: "연간 플랜",
+            .zhHans: "年度订阅", .zhHant: "年度訂閱", .es: "Plan Anual", .fr: "Annuel",
+            .de: "Jahresabo", .ptBR: "Plano Anual", .th: "รายปี",
+            .id: "Tahunan", .ru: "На 1 год", .it: "Piano Annuale", .ar: "الباقة السنوية"
+        ],
+        "pro.plan.yearlyDesc": [
+            .en: "12 months full access · Cancel anytime",
+            .vi: "12 tháng dùng không giới hạn · Hủy bất cứ lúc nào",
+            .ja: "12ヶ月間すべての機能が利用可能・いつでも解約OK",
+            .ko: "12개월 무제한 이용 · 언제든 해지 가능",
+            .zhHans: "12个月无限畅享 · 可随时取消",
+            .zhHant: "12個月無限暢享 · 可隨時取消",
+            .es: "12 meses de acceso total · Cancela cuando quieras",
+            .fr: "12 mois d’accès complet · Annulable à tout moment",
+            .de: "12 Monate Vollzugriff · Jederzeit kündbar",
+            .ptBR: "12 meses de acesso total · Cancele quando quiser",
+            .th: "ใช้งานเต็มรูปแบบ 12 เดือน · ยกเลิกได้ตลอดเวลา",
+            .id: "Akses penuh 12 bulan · Batalkan kapan saja",
+            .ru: "12 месяцев полного доступа · Отмена в любой момент",
+            .it: "12 mesi di accesso completo · Disdici quando vuoi",
+            .ar: "١٢ شهراً وصول كامل · إلغاء في أي وقت"
+        ],
+        "pro.cta": [
+            .en: "Continue & Unlock Pro", .vi: "Mở khóa ngay", .ja: "Proをアンロック", .ko: "Pro 잠금 해제하기",
+            .zhHans: "立即解锁 Pro", .zhHant: "立即解鎖 Pro", .es: "Continuar y desbloquear", .fr: "Débloquer Pro",
+            .de: "Jetzt freischalten", .ptBR: "Desbloquear Pro", .th: "ปลดล็อก Pro ทันที",
+            .id: "Buka Pro Sekarang", .ru: "Разблокировать Pro", .it: "Sblocca Pro ora", .ar: "افتح النسخة الاحترافية"
+        ],
+        "pro.restore": [
+            .en: "Restore Purchases", .vi: "Khôi phục giao dịch", .ja: "購入を復元", .ko: "구매 내역 복원",
+            .zhHans: "恢复购买", .zhHant: "回復購買", .es: "Restaurar compras", .fr: "Restaurer les achats",
+            .de: "Käufe wiederherstellen", .ptBR: "Restaurar compras", .th: "กู้คืนการซื้อ",
+            .id: "Pulihkan Pembelian", .ru: "Восстановить покупки", .it: "Ripristina acquisti", .ar: "استعادة المشتريات"
+        ],
+        "pro.activeTitle": [
+            .en: "Widgets Pro Active", .vi: "Đã mở khóa Widgets Pro", .ja: "Widgets Pro 有効", .ko: "Widgets Pro 활성화됨",
+            .zhHans: "已开通 Widgets Pro", .zhHant: "已開通 Widgets Pro", .es: "Widgets Pro Activo", .fr: "Widgets Pro Actif",
+            .de: "Widgets Pro Aktiv", .ptBR: "Widgets Pro Ativo", .th: "เปิดใช้งาน Pro แล้ว",
+            .id: "Widgets Pro Aktif", .ru: "Widgets Pro Активен", .it: "Widgets Pro Attivo", .ar: "النسخة الاحترافية مفعلة"
+        ],
+        "launcher.title": [
+            .en: "Quick Launcher", .vi: "Mở nhanh ứng dụng", .ja: "クイック起動", .ko: "빠른 실행 런처",
+            .zhHans: "锁屏快捷启动", .zhHant: "鎖屏快速啟動", .es: "Lanzador rápido", .fr: "Lanceur rapide",
+            .de: "Schnellstarter", .ptBR: "Atalho rápido", .th: "ทางลัดด่วน",
+            .id: "Peluncur Cepat", .ru: "Быстрый запуск", .it: "Avvio rapido", .ar: "التشغيل السريع"
+        ],
+        "launcher.addTask": [
+            .en: "Tasks", .vi: "Việc mới", .ja: "タスク", .ko: "할 일",
+            .zhHans: "新待办", .zhHant: "新待辦", .es: "Tarea", .fr: "Tâche",
+            .de: "Aufgabe", .ptBR: "Tarefa", .th: "งานใหม่",
+            .id: "Tugas", .ru: "Задача", .it: "Attività", .ar: "مهمة"
+        ],
+        "launcher.custom": [
+            .en: "QR / Link", .vi: "QR / Link", .ja: "QR / リンク", .ko: "QR / 링크",
+            .zhHans: "扫码 / 链接", .zhHant: "掃碼 / 連結", .es: "QR / Enlace", .fr: "QR / Lien",
+            .de: "QR / Link", .ptBR: "QR / Link", .th: "QR / ลิงก์",
+            .id: "QR / Tautan", .ru: "QR / Ссылка", .it: "QR / Link", .ar: "رابط سريع"
         ]
     ]
 }
