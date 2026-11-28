@@ -35,3 +35,4 @@
    - Thiết kế animation, icon động, micro-interaction → đọc skill `motion-design` (chuẩn LottieFiles Playful archetype, 3 lớp Primary + Secondary + Ambient).
 5. **Tương thích dữ liệu:** Khi thêm field vào `UserSettings` hay `CozySnapshot`, luôn dùng `decodeIfPresent` có giá trị mặc định và thêm unit test giải mã JSON cũ trong `CozyCoreTests`.
 6. **Kiểm tra sau khi sửa:** Luôn chạy `swift test --package-path Packages/CozyCore` nếu có đụng `CozyCore`, và kiểm tra lại tính nhất quán SwiftUI / iOS 17 API khi sửa `CozyDaily` hoặc `Shared`.
+7. **Quy ước Git:** Khi người dùng yêu cầu "commit", mặc định thực hiện cả `git commit` lẫn `git push` lên `origin/main` để kích hoạt GitHub Actions build & kiểm chứng iOS.
