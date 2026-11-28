@@ -23,11 +23,13 @@ final class AppModel {
 
     init(repository: CozyRepository = CozyShared.repository) {
         self.repository = repository
-        self.snapshot = repository.snapshot(reload: true)
+        let loaded = repository.snapshot(reload: true)
+        self.snapshot = loaded
+        CozyL10n.current = loaded.settings.language
         self.weather = CozyWeatherService(repository: repository)
         repository.syncEngine = syncTrigger
         self.currentWord = repository.currentWord()
-        Haptics.isEnabled = self.snapshot.settings.hapticsEnabled
+        Haptics.isEnabled = loaded.settings.hapticsEnabled
     }
 
     // MARK: - Refresh
@@ -35,6 +37,7 @@ final class AppModel {
     func refresh() {
         now = Date()
         snapshot = repository.snapshot(reload: true)
+        CozyL10n.current = snapshot.settings.language
         currentWord = repository.currentWord(now: now)
         Haptics.isEnabled = snapshot.settings.hapticsEnabled
     }

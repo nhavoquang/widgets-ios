@@ -992,7 +992,7 @@ private struct RectangularAccessory: View {
                 let doneCount = data.todaySchedule.filter { $0.isTask && $0.isDone }.count
                 let totalTasks = data.todaySchedule.filter(\.isTask).count
                 HStack(spacing: 4) {
-                    Text("Hôm nay")
+                    Text(CozyL10n.t("tab.today"))
                         .font(.system(size: 13, weight: .bold))
                         .widgetAccentable()
                     Spacer(minLength: 4)
@@ -1012,13 +1012,15 @@ private struct RectangularAccessory: View {
                             .opacity(0.85)
                             .lineLimit(1)
                     } else {
-                        Text("Trống lịch hôm nay")
+                        Text(CozyL10n.t("schedule.noEvents"))
                             .font(.system(size: 14, weight: .semibold))
                             .lineLimit(1)
-                        Text("\(data.lunar.shortText) ÂL")
-                            .font(.system(size: 12))
-                            .opacity(0.75)
-                            .lineLimit(1)
+                        if CozyL10n.effective.isVietnamese {
+                            Text("\(data.lunar.shortText) ÂL")
+                                .font(.system(size: 12))
+                                .opacity(0.75)
+                                .lineLimit(1)
+                        }
                     }
                 } else {
                     ForEach(pending.prefix(2)) { item in
@@ -1102,7 +1104,7 @@ private struct RectangularAccessory: View {
                     Text("\(w.condition.displayName) · ↑\(Int(w.highC.rounded()))° ↓\(Int(w.lowC.rounded()))°")
                         .font(.system(size: 13, weight: .semibold))
                         .lineLimit(1)
-                    Text("Cảm giác \(Int(w.apparentC.rounded()))° · Ẩm \(Int((w.humidity * 100).rounded()))%")
+                    Text("\(CozyL10n.t("weather.feelsLike")) \(Int(w.apparentC.rounded()))° · \(CozyL10n.t("weather.humidity")) \(Int((w.humidity * 100).rounded()))%")
                         .font(.system(size: 11.5))
                         .opacity(0.78)
                         .lineLimit(1)

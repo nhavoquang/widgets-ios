@@ -4,18 +4,7 @@ public enum WeatherCondition: String, Codable, CaseIterable, Sendable {
     case clear, partlyCloudy, cloudy, rain, thunderstorm, drizzle, fog, snow, windy, hot
 
     public var displayName: String {
-        switch self {
-        case .clear: return "Trời quang"
-        case .partlyCloudy: return "Ít mây"
-        case .cloudy: return "Nhiều mây"
-        case .rain: return "Mưa"
-        case .thunderstorm: return "Dông"
-        case .drizzle: return "Mưa phùn"
-        case .fog: return "Sương mù"
-        case .snow: return "Tuyết"
-        case .windy: return "Gió mạnh"
-        case .hot: return "Nắng nóng"
-        }
+        CozyL10n.t("weather.\(rawValue)")
     }
 
     public var symbolName: String {

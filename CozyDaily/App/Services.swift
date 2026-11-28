@@ -204,8 +204,8 @@ final class CozyWeatherService: NSObject, CLLocationManagerDelegate {
     #endif
 
     private func placeName(for location: CLLocation) async -> String {
-        let marks = try? await CLGeocoder().reverseGeocodeLocation(location, preferredLocale: Locale(identifier: "vi_VN"))
-        return marks?.first?.locality ?? marks?.first?.administrativeArea ?? "Quanh đây"
+        let marks = try? await CLGeocoder().reverseGeocodeLocation(location, preferredLocale: CozyL10n.locale)
+        return marks?.first?.locality ?? marks?.first?.administrativeArea ?? CozyL10n.t("weather.title")
     }
 
     private func currentLocation() async -> CLLocation? {

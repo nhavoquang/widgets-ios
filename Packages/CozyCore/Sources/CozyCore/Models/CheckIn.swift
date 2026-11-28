@@ -7,15 +7,7 @@ public enum Mood: String, Codable, CaseIterable, Sendable, Identifiable {
     public var id: String { rawValue }
 
     public var displayName: String {
-        switch self {
-        case .happy: return "Vui vẻ"
-        case .chill: return "Chill"
-        case .sleepy: return "Buồn ngủ"
-        case .excited: return "Háo hức"
-        case .tired: return "Mệt mỏi"
-        case .missing: return "Nhớ nhung"
-        case .busy: return "Bận rộn"
-        }
+        CozyL10n.t("mood.\(rawValue)")
     }
 
     public var emoji: String {

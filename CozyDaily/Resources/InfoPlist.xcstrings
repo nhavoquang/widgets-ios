@@ -1,0 +1,291 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "NSLocationWhenInUseUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Widgets uses your approximate location (~1 km) to show live local weather on your Lock Screen."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Widgets dùng vị trí gần đúng (~1 km) để hiển thị thời tiết thật tại nơi bạn ở lên Màn hình khóa."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ロック画面に現在地のリアルタイム天気を表示するため、おおよその位置情報を使用します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "잠금 화면에 현재 위치의 실시간 날씨를 표시하기 위해 대략적인 위치 정보를 사용합니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用您的大致位置以在锁屏上显示实时本地天气。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用您的大致位置以在鎖定畫面上顯示即時當地天氣。"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Widgets usa tu ubicación aproximada para mostrar el clima en vivo en la pantalla de bloqueo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Widgets utilise votre position approximative pour afficher la météo en direct sur l’écran verrouillé."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Widgets verwendet deinen ungefähren Standort, um das Live-Wetter auf dem Sperrbildschirm anzuzeigen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Widgets usa sua localização aproximada para exibir o clima ao vivo na Tela Bloqueada."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ใช้ตำแหน่งโดยประมาณของคุณเพื่อแสดงสภาพอากาศจริงบนหน้าจอล็อก"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menggunakan lokasi perkiraan Anda untuk menampilkan cuaca langsung di Layar Terkunci."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Использует примерную геопозицию для отображения актуальной погоды на экране блокировки."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa la tua posizione approssimativa per mostrare il meteo in tempo reale sulla schermata di blocco."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يستخدم موقعك التقريبي لعرض الطقس المباشر على شاشة القفل."
+          }
+        }
+      }
+    },
+    "NSCalendarsFullAccessUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Widgets reads your calendar events to display today’s schedule on your Lock Screen."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Widgets đọc lịch của bạn để hiển thị lịch trình hôm nay ngay trên Màn hình khóa."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ロック画面に今日の予定を表示するためにカレンダーを読み取ります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "잠금 화면에 오늘 일정을 표시하기 위해 캘린더 일정을 불러옵니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "读取您的日历事件以在锁屏上显示今日日程。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "讀取您的行事曆行程以在鎖定畫面上顯示今日行程。"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lee tus eventos del calendario para mostrar tu agenda de hoy en la pantalla de bloqueo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lit vos événements pour afficher votre programme du jour sur l’écran verrouillé."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liest deine Kalendertermine, um deinen Tagesplan auf dem Sperrbildschirm anzuzeigen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lê seus eventos do calendário para mostrar sua agenda de hoje na Tela Bloqueada."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "อ่านกิจกรรมในปฏิทินเพื่อแสดงกำหนดการวันนี้บนหน้าจอล็อก"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Membaca acara kalender untuk menampilkan agenda hari ini di Layar Terkunci."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Читает события календаря для показа расписания на день на экране блокировки."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Legge gli eventi del calendario per mostrare gli impegni di oggi sulla schermata di blocco."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يقرأ أحداث التقويم لعرض جدول اليوم على شاشة القفل."
+          }
+        }
+      }
+    },
+    "NSPhotoLibraryAddUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Widgets saves generated Lock Screen wallpapers to your Photo Library."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Widgets lưu ảnh nền Màn hình khóa vào Thư viện ảnh của bạn."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "作成したロック画面の壁紙を写真ライブラリに保存します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "생성된 잠금 화면 배경화면을 사진 보관함에 저장합니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将生成的锁屏壁纸保存到您的相册。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "將產生的鎖定畫面桌布儲存至您的相簿。"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guarda los fondos de pantalla generados en tu fototeca."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistre les fonds d’écran générés dans votre photothèque."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speichert erstellte Sperrbildschirm-Hintergründe in deiner Fotomediathek."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salva os papéis de parede gerados na sua Fototeca."
+          }
+        },
+        "th": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "บันทึกภาพพื้นหลังหน้าจอล็อกลงในคลังรูปภาพของคุณ"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menyimpan wallpaper Layar Terkunci ke Galeri Foto Anda."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохраняет созданные обои экрана блокировки в Фотоплёнку."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salva gli sfondi generati nella tua libreria foto."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يحفظ خلفيات شاشة القفل المُنشأة في مكتبة الصور."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

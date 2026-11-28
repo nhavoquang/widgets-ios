@@ -220,4 +220,32 @@ final class SpaceMergeTests: XCTestCase {
         repo.applyIncomingPartner(parsed)
         XCTAssertEqual(repo.space(kind: .couple)?.partner(of: DemoData.meID)?.displayName, "Minh")
     }
+
+    func testFifteenLanguagesAndLegacySettingsDecode() throws {
+        // Đảm bảo đủ 15 ngôn ngữ App Store + chế độ .system
+        XCTAssertEqual(AppLanguage.storeLocaleCodes.count, 15)
+        XCTAssertEqual(AppLanguage.allCases.count, 16)
+
+        // Kiểm tra ánh xạ mã vùng hệ thống
+        XCTAssertEqual(AppLanguage.matchSystemLocale("vi-VN"), .vi)
+        XCTAssertEqual(AppLanguage.matchSystemLocale("ja_JP"), .ja)
+        XCTAssertEqual(AppLanguage.matchSystemLocale("zh-Hant-TW"), .zhHant)
+        XCTAssertEqual(AppLanguage.matchSystemLocale("zh-Hans-CN"), .zhHans)
+        XCTAssertEqual(AppLanguage.matchSystemLocale("pt-BR"), .ptBR)
+        XCTAssertEqual(AppLanguage.matchSystemLocale("fr-FR"), .fr)
+        XCTAssertEqual(AppLanguage.matchSystemLocale("unknown-XX"), .en)
+
+        // Kiểm tra đủ 7 ngày trong tuần và bản dịch khác rỗng cho cả 15 ngôn ngữ
+        for lang in AppLanguage.allCases where lang != .system {
+            XCTAssertEqual(CozyL10n.weekdayShortLabels(for: lang).count, 7)
+            XCTAssertFalse(CozyL10n.t("tab.today", lang: lang).isEmpty)
+            XCTAssertFalse(CozyL10n.t("block.weather", lang: lang).isEmpty)
+            XCTAssertFalse(CozyL10n.t("weather.rain", lang: lang).isEmpty)
+        }
+
+        // Giải mã JSON UserSettings cũ chưa có trường `language` phải mặc định về `.system`
+        let legacyJSON = #"{"displayName":"An","species":"cat"}"#.data(using: .utf8)!
+        let decoded = try JSONDecoder().decode(UserSettings.self, from: legacyJSON)
+        XCTAssertEqual(decoded.language, .system)
+    }
 }

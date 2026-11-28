@@ -13,6 +13,7 @@ struct CozyDailyApp: App {
         WindowGroup {
             RootTabView()
                 .environment(model)
+                .environment(\.locale, model.settings.language.locale)
                 .tint(Color.accentSky)
                 .preferredColorScheme(model.settings.appearance.colorScheme)
                 .task { await model.onForeground() }
@@ -29,23 +30,25 @@ struct CozyDailyApp: App {
 }
 
 struct RootTabView: View {
+    @Environment(AppModel.self) private var model
     @State private var tab: AppTab = .today
 
     enum AppTab: Hashable { case today, connect, calendar, studio }
 
     var body: some View {
+        let lang = model.settings.language
         TabView(selection: $tab) {
             TodayView()
-                .tabItem { Label("Hôm nay", systemImage: "sun.horizon.fill") }
+                .tabItem { Label(CozyL10n.t("tab.today", lang: lang), systemImage: "sun.horizon.fill") }
                 .tag(AppTab.today)
             ConnectView()
-                .tabItem { Label("Kết nối", systemImage: "heart.circle.fill") }
+                .tabItem { Label(CozyL10n.t("tab.connect", lang: lang), systemImage: "heart.circle.fill") }
                 .tag(AppTab.connect)
             CalendarGridView()
-                .tabItem { Label("Lịch & Lưới", systemImage: "calendar") }
+                .tabItem { Label(CozyL10n.t("tab.calendar", lang: lang), systemImage: "calendar") }
                 .tag(AppTab.calendar)
             StudioView()
-                .tabItem { Label("Lock Studio", systemImage: "iphone") }
+                .tabItem { Label(CozyL10n.t("tab.studio", lang: lang), systemImage: "iphone") }
                 .tag(AppTab.studio)
         }
     }

@@ -35,7 +35,8 @@ struct CozyWidgetData {
 
     static func make(config: WidgetConfig?, date: Date, repository: CozyRepository, fallbackContent: WidgetContentKind = .combo) -> CozyWidgetData {
         let snap = repository.snapshot(reload: true)
-        let cfg = config ?? WidgetConfig(name: "CozyDaily", content: fallbackContent, species: snap.settings.species)
+        CozyL10n.current = snap.settings.language
+        let cfg = config ?? WidgetConfig(name: "Widgets", content: fallbackContent, species: snap.settings.species)
         let cal = repository.calendar
         let counter = EventCounter(calendar: cal)
 

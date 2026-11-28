@@ -17,6 +17,7 @@ struct SettingsSheet: View {
                 ScrollView {
                     VStack(spacing: 14) {
                         profileCard
+                        languageCard
                         appearanceCard
                         weatherLocationCard
                         vocabDecksCard
@@ -28,11 +29,11 @@ struct SettingsSheet: View {
                 }
                 .scrollDismissesKeyboard(.interactively)
             }
-            .navigationTitle("Cài đặt")
+            .navigationTitle(CozyL10n.t("settings.title", lang: model.settings.language))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Xong") {
+                    Button(CozyL10n.t("common.done", lang: model.settings.language)) {
                         commitName()
                         dismiss()
                     }
@@ -74,11 +75,40 @@ struct SettingsSheet: View {
         .cozyCard(padding: 14)
     }
 
-    private var appearanceCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            CozySectionHeader(title: "Giao diện", symbol: "circle.lefthalf.filled", accent: .accentSky, trailing: nil)
+    private var languageCard: some View {
+        let lang = model.settings.language
+        return VStack(alignment: .leading, spacing: 10) {
+            CozySectionHeader(
+                title: CozyL10n.t("settings.language", lang: lang),
+                symbol: "globe",
+                accent: .accentSky,
+                trailing: lang.nativeDisplayName
+            )
+            Picker(CozyL10n.t("settings.language", lang: lang), selection: Binding(
+                get: { model.settings.language },
+                set: { newLang in
+                    CozyL10n.current = newLang
+                    model.updateSettings { $0.language = newLang }
+                    Haptics.tap()
+                }
+            )) {
+                ForEach(AppLanguage.allCases) { option in
+                    Text(option.nativeDisplayName).tag(option)
+                }
+            }
+            .pickerStyle(.menu)
+            .tint(Color.accentSky)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .cozyCard(padding: 14)
+    }
 
-            Picker("Giao diện", selection: Binding(
+    private var appearanceCard: some View {
+        let lang = model.settings.language
+        return VStack(alignment: .leading, spacing: 12) {
+            CozySectionHeader(title: CozyL10n.t("appearance.title", lang: lang), symbol: "circle.lefthalf.filled", accent: .accentSky, trailing: nil)
+
+            Picker(CozyL10n.t("appearance.title", lang: lang), selection: Binding(
                 get: { model.settings.appearance },
                 set: { mode in
                     model.updateSettings { $0.appearance = mode }
@@ -89,7 +119,7 @@ struct SettingsSheet: View {
             }
             .pickerStyle(.segmented)
 
-            Toggle("Rung phản hồi", isOn: Binding(
+            Toggle(CozyL10n.t("settings.haptics", lang: lang), isOn: Binding(
                 get: { model.settings.hapticsEnabled },
                 set: { v in
                     model.updateSettings { $0.hapticsEnabled = v }

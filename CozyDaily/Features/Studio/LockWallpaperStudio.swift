@@ -28,20 +28,7 @@ enum LockBlockKind: String, CaseIterable, Identifiable, Codable, Transferable {
     }
 
     var title: String {
-        switch self {
-        case .weekStrip: return "Lịch tuần"
-        case .todaySchedule: return "Lịch trình hôm nay"
-        case .weather: return "Thời tiết thật"
-        case .vocab: return "Từ vựng hôm nay"
-        case .partner: return "Người kết nối"
-        case .monthGrid: return "Lịch tháng"
-        case .eventCountdown: return "Đếm ngày sự kiện"
-        case .yearProgress: return "Tiến độ năm %"
-        case .habitStreak: return "Chuỗi học 7 ngày"
-        case .lunarCard: return "Âm lịch hôm nay"
-        case .stickyNote: return "Ghi chú ghim"
-        case .batteryCard: return "Pin thiết bị"
-        }
+        CozyL10n.t("block.\(rawValue)")
     }
 
     var symbol: String {
@@ -187,14 +174,7 @@ enum LockCardStyle: String, CaseIterable, Identifiable, Codable {
     var id: String { rawValue }
 
     var title: String {
-        switch self {
-        case .none: return "Không nền"
-        case .frostedGlass: return "Kính mờ"
-        case .solidSoft: return "Bo mềm"
-        case .glowingBorder: return "Viền sáng"
-        case .hairlineOutline: return "Viền mảnh"
-        case .dashedOutline: return "Nét đứt"
-        }
+        CozyL10n.t("style.\(rawValue)")
     }
 }
 
@@ -586,10 +566,10 @@ struct LockWallpaperStudio: View {
         var id: String { rawValue }
         var title: String {
             switch self {
-            case .templates: return "16 Mẫu"
-            case .layout: return "Bố cục & Cột"
-            case .style: return "Viền & Chữ"
-            case .background: return "Nền"
+            case .templates: return CozyL10n.t("studio.tab.templates")
+            case .layout: return CozyL10n.t("studio.tab.layout")
+            case .style: return CozyL10n.t("studio.tab.style")
+            case .background: return CozyL10n.t("studio.tab.bg")
             }
         }
         var symbol: String {
@@ -891,7 +871,7 @@ struct LockWallpaperStudio: View {
                 Spacer(minLength: 0)
             }
 
-            Text("Nhấn giữ & kéo thả ô để đổi vị trí · Chạm nút 1 cột / 1/2 / 1/3 / 1/4 để gộp hàng:")
+            Text(CozyL10n.t("studio.dragHint"))
                 .font(.system(size: 11))
                 .foregroundStyle(.white.opacity(0.58))
 
@@ -925,7 +905,7 @@ struct LockWallpaperStudio: View {
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "plus.circle.fill")
-                    Text("Thêm ô thành phần (Lịch, Đếm ngày, Tiến độ năm, Ghi chú…)")
+                    Text(CozyL10n.t("studio.addComponent"))
                         .lineLimit(1)
                 }
                 .font(.system(size: 13, weight: .bold))
@@ -1097,11 +1077,11 @@ struct LockWallpaperStudio: View {
                 }
             }
 
-            sliderCard(title: "Độ bo góc", valueText: "\(Int(config.cornerRadius)) pt", value: $config.cornerRadius, range: 6...28, step: 2)
-            sliderCard(title: "Khoảng cách giữa các ô", valueText: "\(Int(config.gridSpacing)) pt", value: $config.gridSpacing, range: 4...18, step: 2)
-            sliderCard(title: "Cỡ chữ", valueText: "\(Int((config.fontScale * 100).rounded()))%", value: $config.fontScale, range: 0.85...1.20, step: 0.05)
-            sliderCard(title: "Độ đậm nền thẻ", valueText: "\(Int((config.cardOpacity * 100).rounded()))%", value: $config.cardOpacity, range: 0.35...1.35, step: 0.10)
-            sliderCard(title: "Vị trí dọc (hoặc kéo trên màn hình)", valueText: "\(Int(config.verticalOffset)) pt", value: $config.verticalOffset, range: -75...140, step: 5)
+            sliderCard(title: CozyL10n.t("style.cornerRadius"), valueText: "\(Int(config.cornerRadius)) pt", value: $config.cornerRadius, range: 6...28, step: 2)
+            sliderCard(title: CozyL10n.t("style.gridSpacing"), valueText: "\(Int(config.gridSpacing)) pt", value: $config.gridSpacing, range: 4...18, step: 2)
+            sliderCard(title: CozyL10n.t("style.fontScale"), valueText: "\(Int((config.fontScale * 100).rounded()))%", value: $config.fontScale, range: 0.85...1.20, step: 0.05)
+            sliderCard(title: CozyL10n.t("style.cardOpacity"), valueText: "\(Int((config.cardOpacity * 100).rounded()))%", value: $config.cardOpacity, range: 0.35...1.35, step: 0.10)
+            sliderCard(title: CozyL10n.t("style.verticalOffset"), valueText: "\(Int(config.verticalOffset)) pt", value: $config.verticalOffset, range: -75...140, step: 5)
         }
     }
 
@@ -1148,7 +1128,7 @@ struct LockWallpaperStudio: View {
             }
 
             PhotosPicker(selection: $photoItem, matching: .images) {
-                Label("Chọn ảnh nền từ Thư viện", systemImage: "photo.on.rectangle.angled")
+                Label(CozyL10n.t("bg.choosePhoto"), systemImage: "photo.on.rectangle.angled")
                     .font(.system(size: 13.5, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
@@ -1233,7 +1213,7 @@ struct LockWallpaperStudio: View {
                                 config.save()
                                 openURL(shareURL)
                             } label: {
-                                Label("Lần đầu: Cài Shortcut tự động (1 chạm)", systemImage: "plus.app.fill")
+                                Label(CozyL10n.t("studio.installShortcutFirst"), systemImage: "plus.app.fill")
                                     .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(CozyPillButtonStyle(tint: .accentSage, filled: false))
@@ -1497,7 +1477,7 @@ struct LockWallpaperRenderView: View {
         let weekday = cal.component(.weekday, from: now)
         let offsetToMon = (weekday == 1) ? -6 : (2 - weekday)
         let monday = cal.date(byAdding: .day, value: offsetToMon, to: cal.startOfDay(for: now))!
-        let labels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"]
+        let labels = CozyL10n.weekdayShortLabels()
 
         return HStack(spacing: (compact ? 2 : 4) * scale) {
             ForEach(0..<7, id: \.self) { i in
@@ -1530,12 +1510,13 @@ struct LockWallpaperRenderView: View {
                 Image(systemName: "checklist")
                     .font(.system(size: 11 * fScale, weight: .bold))
                     .foregroundStyle(Color.accentHoney)
-                Text("Hôm nay")
+                Text(CozyL10n.t("tab.today"))
                     .font(.system(size: (compact ? 13 : 15) * fScale, weight: .bold))
                     .foregroundStyle(Color.accentHoney)
             }
             if pending.isEmpty {
-                Text(compact ? "Trống lịch · \(lunar.shortText) ÂL" : "Không có sự kiện hôm nay · \(lunar.shortText) ÂL")
+                let emptyMsg = CozyL10n.t("schedule.noEvents")
+                Text(CozyL10n.effective.isVietnamese ? "\(emptyMsg) · \(lunar.shortText) ÂL" : emptyMsg)
                     .font(.system(size: (compact ? 11.5 : 13) * fScale, weight: .medium))
                     .foregroundStyle(secondaryText)
                     .lineLimit(2)
@@ -1593,7 +1574,7 @@ struct LockWallpaperRenderView: View {
                         .font(.system(size: 11.5 * fScale, weight: .semibold))
                         .foregroundStyle(primaryText.opacity(0.9))
                         .lineLimit(1)
-                    Text("↑\(Int(w.highC.rounded()))° ↓\(Int(w.lowC.rounded()))° · Ẩm \(Int((w.humidity * 100).rounded()))%")
+                    Text("↑\(Int(w.highC.rounded()))° ↓\(Int(w.lowC.rounded()))° · \(CozyL10n.t("weather.humidity")) \(Int((w.humidity * 100).rounded()))%")
                         .font(.system(size: 10.5 * fScale))
                         .foregroundStyle(secondaryText)
                         .lineLimit(1)
@@ -1608,7 +1589,7 @@ struct LockWallpaperRenderView: View {
                             .font(.system(size: 15 * fScale, weight: .bold))
                             .foregroundStyle(primaryText)
                             .lineLimit(1)
-                        Text("↑\(Int(w.highC.rounded()))° ↓\(Int(w.lowC.rounded()))° · Cảm giác \(Int(w.apparentC.rounded()))° · Ẩm \(Int((w.humidity * 100).rounded()))%")
+                        Text("↑\(Int(w.highC.rounded()))° ↓\(Int(w.lowC.rounded()))° · \(CozyL10n.t("weather.feelsLike")) \(Int(w.apparentC.rounded()))° · \(CozyL10n.t("weather.humidity")) \(Int((w.humidity * 100).rounded()))%")
                             .font(.system(size: 11.5 * fScale))
                             .foregroundStyle(secondaryText)
                             .lineLimit(1)
@@ -1616,7 +1597,7 @@ struct LockWallpaperRenderView: View {
                 }
             }
         } else {
-            Text("Thời tiết…")
+            Text("\(CozyL10n.t("weather.title"))…")
                 .font(.system(size: 12 * fScale))
                 .foregroundStyle(secondaryText)
         }
@@ -1701,7 +1682,7 @@ struct LockWallpaperRenderView: View {
         } else {
             HStack(spacing: 5 * scale) {
                 Image(systemName: "heart.fill").foregroundStyle(Color.accentPeach).font(.system(size: 12 * fScale))
-                Text("Chưa kết nối")
+                Text(CozyL10n.t("partner.empty"))
                     .font(.system(size: 12 * fScale, weight: .semibold))
                     .foregroundStyle(secondaryText)
                     .lineLimit(1)
@@ -1720,7 +1701,7 @@ struct LockWallpaperRenderView: View {
         let todayDay = cal.component(.day, from: now)
         let totalCells = pad + totalDays
         let rowCount = (totalCells + 6) / 7
-        let labels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"]
+        let labels = CozyL10n.weekdayShortLabels()
 
         return VStack(spacing: 3.5 * scale) {
             HStack(spacing: 2 * scale) {
@@ -1820,7 +1801,7 @@ struct LockWallpaperRenderView: View {
                 Image(systemName: "flame.fill")
                     .font(.system(size: 11 * fScale))
                     .foregroundStyle(Color.accentSage)
-                Text(span <= 4 ? "\(streak)n" : "Chuỗi \(streak) ngày")
+                Text(span <= 4 ? "\(streak)d" : "\(CozyL10n.t("block.habitStreak")) · \(streak)")
                     .font(.system(size: 12 * fScale, weight: .bold))
                     .foregroundStyle(primaryText)
                     .lineLimit(1)
@@ -1846,7 +1827,7 @@ struct LockWallpaperRenderView: View {
                 Image(systemName: "moon.stars.fill")
                     .font(.system(size: 11 * fScale))
                     .foregroundStyle(Color.accentHoney)
-                Text("Âm lịch")
+                Text(CozyL10n.t("block.lunarCard"))
                     .font(.system(size: 10.5 * fScale, weight: .semibold))
                     .foregroundStyle(secondaryText)
                     .lineLimit(1)
@@ -1855,7 +1836,7 @@ struct LockWallpaperRenderView: View {
                 .font(.system(size: (span <= 4 ? 14 : 16) * fScale, weight: .heavy, design: .rounded))
                 .foregroundStyle(primaryText)
                 .lineLimit(1)
-            if span >= 6 {
+            if span >= 6, CozyL10n.effective.isVietnamese {
                 Text("Năm \(lunar.yearName)")
                     .font(.system(size: 10.5 * fScale))
                     .foregroundStyle(secondaryText)
@@ -1871,11 +1852,11 @@ struct LockWallpaperRenderView: View {
                 Image(systemName: "pin.fill")
                     .font(.system(size: 10 * fScale))
                     .foregroundStyle(Color.accentHoney)
-                Text("Ghi chú")
+                Text(CozyL10n.t("block.stickyNote"))
                     .font(.system(size: 10.5 * fScale, weight: .bold))
                     .foregroundStyle(Color.accentHoney)
             }
-            Text(config.stickyNoteText.isEmpty ? "Chạm tab Bố cục để nhập ghi chú…" : config.stickyNoteText)
+            Text(config.stickyNoteText)
                 .font(.system(size: (span <= 4 ? 10.5 : 12.5) * fScale, weight: .medium))
                 .foregroundStyle(primaryText)
                 .lineLimit(span == 12 ? 2 : 3)
@@ -1893,7 +1874,7 @@ struct LockWallpaperRenderView: View {
                     .font(.system(size: (span <= 4 ? 14 : 16) * fScale, weight: .heavy, design: .rounded))
                     .foregroundStyle(primaryText)
             }
-            Text("Pin iPhone")
+            Text(CozyL10n.t("block.batteryCard"))
                 .font(.system(size: 10 * fScale, weight: .medium))
                 .foregroundStyle(secondaryText)
                 .lineLimit(1)
@@ -1901,10 +1882,7 @@ struct LockWallpaperRenderView: View {
     }
 
     private var dateTitle: String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "vi_VN")
-        f.dateFormat = "EEEE, d 'tháng' M"
-        return f.string(from: now).capitalized
+        CozyL10n.formatLockDate(now)
     }
 }
 
@@ -1939,6 +1917,7 @@ struct GenerateLockWallpaperIntent: AppIntent {
 
         let now = Date()
         let snap = repo.snapshot(reload: true)
+        CozyL10n.current = snap.settings.language
         let upcoming = repo.upcomingEvents(now: now, limit: 1).first
         let status = upcoming.map { EventCounter(calendar: repo.calendar).status(of: $0, now: now) }
         let renderSize = CGSize(width: 393, height: 852)

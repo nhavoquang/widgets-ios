@@ -1,7 +1,24 @@
 name: CozyDaily
 options:
   bundleIdPrefix: com.cozydaily
-  developmentLanguage: vi
+  developmentLanguage: en
+  knownRegions:
+    - Base
+    - en
+    - vi
+    - ja
+    - ko
+    - zh-Hans
+    - zh-Hant
+    - es
+    - fr
+    - de
+    - pt-BR
+    - th
+    - id
+    - ru
+    - it
+    - ar
   deploymentTarget:
     iOS: "17.0"
   createIntermediateGroups: true
@@ -62,9 +79,9 @@ targets:
         CozyAppGroup: group.$(COZY_BUNDLE_PREFIX).shared
         CozyCloudContainer: iCloud.$(COZY_BUNDLE_PREFIX)
         CozyCloudEnabled: $(COZY_CLOUD_ENABLED)
-        NSLocationWhenInUseUsageDescription: CozyDaily dùng vị trí gần đúng (~1 km) để lấy thời tiết, đổi trang phục cho linh vật và gợi ý món ăn.
-        NSCalendarsFullAccessUsageDescription: CozyDaily hiển thị lịch Apple Calendar của bạn theo giao diện dễ thương.
-        NSPhotoLibraryAddUsageDescription: CozyDaily lưu ảnh lưới sticker tháng vào thư viện ảnh.
+        NSLocationWhenInUseUsageDescription: Widgets uses your approximate location (~1 km) to display live local weather on your Lock Screen.
+        NSCalendarsFullAccessUsageDescription: Widgets reads your Apple Calendar events to show today's schedule on your Lock Screen.
+        NSPhotoLibraryAddUsageDescription: Widgets saves generated Lock Screen wallpapers to your Photo Library.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(COZY_BUNDLE_PREFIX).app

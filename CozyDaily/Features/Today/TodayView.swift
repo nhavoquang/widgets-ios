@@ -99,10 +99,9 @@ private struct TopHeaderBar: View {
     }
 
     private var dateLine: String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "vi_VN")
-        f.dateFormat = "EEEE, d/M"
-        return "\(f.string(from: model.now).capitalized) · \(model.lunarToday.shortText) ÂL"
+        let lang = model.settings.language
+        let formatted = CozyL10n.formatLockDate(model.now, lang: lang)
+        return lang.isVietnamese ? "\(formatted) · \(model.lunarToday.shortText) ÂL" : formatted
     }
 }
 

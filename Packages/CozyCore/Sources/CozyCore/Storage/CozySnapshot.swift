@@ -8,9 +8,9 @@ public enum AppAppearance: String, Codable, CaseIterable, Sendable, Identifiable
 
     public var displayName: String {
         switch self {
-        case .system: return "Theo máy"
-        case .light: return "Sáng ấm"
-        case .dark: return "Tối dịu"
+        case .system: return CozyL10n.t("appearance.system")
+        case .light: return CozyL10n.t("appearance.light")
+        case .dark: return CozyL10n.t("appearance.dark")
         }
     }
 
@@ -35,9 +35,10 @@ public struct UserSettings: Codable, Hashable, Sendable {
     public var appearance: AppAppearance
     public var hapticsEnabled: Bool
     public var weatherLocation: WeatherLocationPreset
+    public var language: AppLanguage
 
     public init(
-        displayName: String = "Mình",
+        displayName: String = "Me",
         species: MascotSpecies = .cat,
         activeDecks: Set<VocabDeck> = [.daily, .healing],
         shareWeatherWithSpaces: Bool = true,
@@ -46,7 +47,8 @@ public struct UserSettings: Codable, Hashable, Sendable {
         hasOnboarded: Bool = false,
         appearance: AppAppearance = .system,
         hapticsEnabled: Bool = true,
-        weatherLocation: WeatherLocationPreset = .autoGPS
+        weatherLocation: WeatherLocationPreset = .autoGPS,
+        language: AppLanguage = .system
     ) {
         self.displayName = displayName
         self.species = species
@@ -58,15 +60,16 @@ public struct UserSettings: Codable, Hashable, Sendable {
         self.appearance = appearance
         self.hapticsEnabled = hapticsEnabled
         self.weatherLocation = weatherLocation
+        self.language = language
     }
 
     private enum CodingKeys: String, CodingKey {
-        case displayName, species, activeDecks, shareWeatherWithSpaces, shareDeviceBattery, syncAppleCalendar, hasOnboarded, appearance, hapticsEnabled, weatherLocation
+        case displayName, species, activeDecks, shareWeatherWithSpaces, shareDeviceBattery, syncAppleCalendar, hasOnboarded, appearance, hapticsEnabled, weatherLocation, language
     }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        self.displayName = try c.decodeIfPresent(String.self, forKey: .displayName) ?? "Mình"
+        self.displayName = try c.decodeIfPresent(String.self, forKey: .displayName) ?? "Me"
         self.species = try c.decodeIfPresent(MascotSpecies.self, forKey: .species) ?? .cat
         self.activeDecks = try c.decodeIfPresent(Set<VocabDeck>.self, forKey: .activeDecks) ?? [.daily, .healing]
         self.shareWeatherWithSpaces = try c.decodeIfPresent(Bool.self, forKey: .shareWeatherWithSpaces) ?? true
@@ -76,6 +79,7 @@ public struct UserSettings: Codable, Hashable, Sendable {
         self.appearance = try c.decodeIfPresent(AppAppearance.self, forKey: .appearance) ?? .system
         self.hapticsEnabled = try c.decodeIfPresent(Bool.self, forKey: .hapticsEnabled) ?? true
         self.weatherLocation = try c.decodeIfPresent(WeatherLocationPreset.self, forKey: .weatherLocation) ?? .autoGPS
+        self.language = try c.decodeIfPresent(AppLanguage.self, forKey: .language) ?? .system
     }
 }
 
