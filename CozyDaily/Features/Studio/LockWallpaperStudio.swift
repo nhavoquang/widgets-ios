@@ -5,7 +5,7 @@ import AppIntents
 import UniformTypeIdentifiers
 import CozyCore
 
-// MARK: - Locka-Style Block Model
+// MARK: - Locka-Style Block, Background, Card Style & 10 Modern Templates
 
 enum LockBlockKind: String, CaseIterable, Identifiable, Codable {
     case weekStrip
@@ -52,7 +52,14 @@ enum LockBlockKind: String, CaseIterable, Identifiable, Codable {
 enum LockWallpaperBg: String, CaseIterable, Identifiable, Codable {
     case pureDark
     case midnightBlue
+    case obsidianNeon
     case sunsetDusk
+    case forestTeal
+    case amethystNight
+    case cleanLight
+    case crystalSlate
+    case roseCharcoal
+    case deepIndigo
     case photo
 
     var id: String { rawValue }
@@ -61,8 +68,55 @@ enum LockWallpaperBg: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .pureDark: return "Đen tối giản"
         case .midnightBlue: return "Xanh đêm"
+        case .obsidianNeon: return "Đen viền sáng"
         case .sunsetDusk: return "Hoàng hôn"
+        case .forestTeal: return "Rừng xanh"
+        case .amethystNight: return "Tím đêm"
+        case .cleanLight: return "Sáng tối giản"
+        case .crystalSlate: return "Xám pha lê"
+        case .roseCharcoal: return "Hồng đêm"
+        case .deepIndigo: return "Chàm sâu"
         case .photo: return "Ảnh của bạn"
+        }
+    }
+
+    var isLight: Bool { self == .cleanLight }
+
+    var previewColors: [Color] {
+        switch self {
+        case .pureDark: return [Color(RGBA(hex: "#141416")!), Color(RGBA(hex: "#1C1C20")!)]
+        case .midnightBlue: return [Color(RGBA(hex: "#0F172A")!), Color(RGBA(hex: "#1E293B")!)]
+        case .obsidianNeon: return [Color(RGBA(hex: "#090B10")!), Color(RGBA(hex: "#121826")!)]
+        case .sunsetDusk: return [Color(RGBA(hex: "#1F1C2C")!), Color(RGBA(hex: "#614357")!), Color(RGBA(hex: "#232526")!)]
+        case .forestTeal: return [Color(RGBA(hex: "#0B2222")!), Color(RGBA(hex: "#133B38")!)]
+        case .amethystNight: return [Color(RGBA(hex: "#1E122B")!), Color(RGBA(hex: "#351F4A")!)]
+        case .cleanLight: return [Color(RGBA(hex: "#F3F5F8")!), Color(RGBA(hex: "#E6EAF0")!)]
+        case .crystalSlate: return [Color(RGBA(hex: "#181A20")!), Color(RGBA(hex: "#242833")!)]
+        case .roseCharcoal: return [Color(RGBA(hex: "#1D1418")!), Color(RGBA(hex: "#361D28")!)]
+        case .deepIndigo: return [Color(RGBA(hex: "#111827")!), Color(RGBA(hex: "#1F2937")!)]
+        case .photo: return [Color(RGBA(hex: "#2B2D36")!), Color(RGBA(hex: "#181A20")!)]
+        }
+    }
+}
+
+enum LockCardStyle: String, CaseIterable, Identifiable, Codable {
+    case none
+    case frostedGlass
+    case solidSoft
+    case glowingBorder
+    case hairlineOutline
+    case dashedOutline
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .none: return "Không nền"
+        case .frostedGlass: return "Kính mờ"
+        case .solidSoft: return "Bo mềm"
+        case .glowingBorder: return "Viền sáng"
+        case .hairlineOutline: return "Viền mảnh"
+        case .dashedOutline: return "Nét đứt"
         }
     }
 }
@@ -70,10 +124,11 @@ enum LockWallpaperBg: String, CaseIterable, Identifiable, Codable {
 struct LockLayoutConfig: Equatable, Codable {
     var blocks: [LockBlockKind] = [.weekStrip, .todaySchedule, .weather, .vocab]
     var bg: LockWallpaperBg = .pureDark
-    var showCardGlass: Bool = false
+    var cardStyle: LockCardStyle = .none
+    var cornerRadius: CGFloat = 18
     var verticalOffset: CGFloat = 0
 
-    private static let storageKey = "cozy.lockLayoutConfig.v1"
+    private static let storageKey = "cozy.lockLayoutConfig.v2"
 
     static func load() -> LockLayoutConfig {
         guard let data = UserDefaults.standard.data(forKey: storageKey),
@@ -90,12 +145,65 @@ struct LockLayoutConfig: Equatable, Codable {
     }
 }
 
+/// 10 mẫu Lock Screen hiện đại (đủ nền, viền, bo góc, bố cục) để chọn 1 chạm.
+struct LockTemplatePreset: Identifiable {
+    let id: String
+    let name: String
+    let badge: String
+    let accent: Color
+    let config: LockLayoutConfig
+
+    static let all: [LockTemplatePreset] = [
+        LockTemplatePreset(
+            id: "minimal-dark", name: "Tối giản", badge: "Không nền", accent: .accentHoney,
+            config: LockLayoutConfig(blocks: [.weekStrip, .todaySchedule, .weather, .vocab], bg: .pureDark, cardStyle: .none, cornerRadius: 14)
+        ),
+        LockTemplatePreset(
+            id: "midnight-glass", name: "Kính mờ", badge: "Bo 20pt", accent: .accentSky,
+            config: LockLayoutConfig(blocks: [.weekStrip, .todaySchedule, .weather, .vocab], bg: .midnightBlue, cardStyle: .frostedGlass, cornerRadius: 20)
+        ),
+        LockTemplatePreset(
+            id: "neon-rim", name: "Viền sáng", badge: "Hiện đại", accent: .accentSky,
+            config: LockLayoutConfig(blocks: [.weekStrip, .todaySchedule, .monthGrid], bg: .obsidianNeon, cardStyle: .glowingBorder, cornerRadius: 18)
+        ),
+        LockTemplatePreset(
+            id: "sunset-pill", name: "Hoàng hôn", badge: "Bo 24pt", accent: .accentPeach,
+            config: LockLayoutConfig(blocks: [.todaySchedule, .weather, .partner, .vocab], bg: .sunsetDusk, cardStyle: .solidSoft, cornerRadius: 24)
+        ),
+        LockTemplatePreset(
+            id: "forest-locka", name: "Rừng xanh", badge: "Lịch tháng", accent: .accentSage,
+            config: LockLayoutConfig(blocks: [.weekStrip, .todaySchedule, .vocab, .monthGrid], bg: .forestTeal, cardStyle: .frostedGlass, cornerRadius: 18)
+        ),
+        LockTemplatePreset(
+            id: "amethyst-night", name: "Tím đêm", badge: "Bo 22pt", accent: Color(RGBA(hex: "#B983FF")!),
+            config: LockLayoutConfig(blocks: [.monthGrid, .todaySchedule, .partner], bg: .amethystNight, cardStyle: .solidSoft, cornerRadius: 22)
+        ),
+        LockTemplatePreset(
+            id: "clean-light", name: "Sáng sạch", badge: "Light Mode", accent: .accentSky,
+            config: LockLayoutConfig(blocks: [.weekStrip, .todaySchedule, .weather, .vocab], bg: .cleanLight, cardStyle: .solidSoft, cornerRadius: 20)
+        ),
+        LockTemplatePreset(
+            id: "crystal-outline", name: "Viền mảnh", badge: "Trong suốt", accent: .white,
+            config: LockLayoutConfig(blocks: [.weekStrip, .todaySchedule, .weather, .vocab], bg: .crystalSlate, cardStyle: .hairlineOutline, cornerRadius: 22)
+        ),
+        LockTemplatePreset(
+            id: "modern-couple", name: "Kết nối", badge: "Cặp đôi", accent: .accentPeach,
+            config: LockLayoutConfig(blocks: [.partner, .todaySchedule, .weather, .weekStrip], bg: .roseCharcoal, cardStyle: .glowingBorder, cornerRadius: 24)
+        ),
+        LockTemplatePreset(
+            id: "pro-dashed", name: "Nét đứt", badge: "Năng suất", accent: .accentHoney,
+            config: LockLayoutConfig(blocks: [.weekStrip, .todaySchedule, .monthGrid, .vocab], bg: .deepIndigo, cardStyle: .dashedOutline, cornerRadius: 16)
+        ),
+    ]
+}
+
 // MARK: - Locka-Style Studio View
 
 struct LockWallpaperStudio: View {
     @Environment(AppModel.self) private var model
     @State private var config = LockLayoutConfig.load()
-    @State private var editorTab: EditorTab = .layout
+    @State private var selectedPresetID: String? = "minimal-dark"
+    @State private var editorTab: EditorTab = .templates
     @State private var photoItem: PhotosPickerItem?
     @State private var bgImage: UIImage?
     @State private var exportedImage: UIImage?
@@ -105,17 +213,19 @@ struct LockWallpaperStudio: View {
     @State private var savedToast = false
 
     enum EditorTab: String, CaseIterable, Identifiable {
-        case background, style, layout
+        case templates, background, style, layout
         var id: String { rawValue }
         var title: String {
             switch self {
-            case .background: return "Ảnh nền"
-            case .style: return "Kiểu thẻ"
+            case .templates: return "10 Mẫu"
+            case .background: return "Nền"
+            case .style: return "Viền & Bo"
             case .layout: return "Bố cục"
             }
         }
         var symbol: String {
             switch self {
+            case .templates: return "sparkles.rectangle.stack"
             case .background: return "photo"
             case .style: return "paintbrush"
             case .layout: return "square.grid.2x2"
@@ -191,12 +301,12 @@ struct LockWallpaperStudio: View {
         .padding(.top, 6)
     }
 
-    // MARK: Live Lock Screen Canvas (Tỷ lệ iPhone chuẩn)
+    // MARK: Live Lock Screen Canvas
 
     private var lockPreviewCanvas: some View {
         GeometryReader { geo in
             let maxH = geo.size.height
-            let w = min(geo.size.width * 0.62, maxH * (9.0 / 19.5))
+            let w = min(geo.size.width * 0.60, maxH * (9.0 / 19.5))
             let h = w * (19.5 / 9.0)
             LockWallpaperRenderView(
                 config: config,
@@ -214,32 +324,33 @@ struct LockWallpaperStudio: View {
             .clipShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 34, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.16), lineWidth: 1.5)
+                    .strokeBorder(Color.white.opacity(0.18), lineWidth: 1.5)
             )
             .shadow(color: .black.opacity(0.5), radius: 18, y: 8)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .animation(.easeOut(duration: 0.2), value: config)
         }
-        .frame(minHeight: 340)
+        .frame(minHeight: 330)
     }
 
-    // MARK: Editor Tab Bar (giống thanh công cụ Locka)
+    // MARK: Editor Tab Bar
 
     private var editorTabBar: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 4) {
             ForEach(EditorTab.allCases) { tab in
                 let selected = editorTab == tab
                 Button {
                     Haptics.tap()
-                    withAnimation(.easeOut(duration: 0.18)) { editorTab = tab }
+                    withAnimation(.easeOut(duration: 0.16)) { editorTab = tab }
                 } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: tab.symbol).font(.system(size: 13, weight: .semibold))
-                        Text(tab.title).font(.system(size: 13, weight: .semibold))
+                    HStack(spacing: 4) {
+                        Image(systemName: tab.symbol).font(.system(size: 12, weight: .semibold))
+                        Text(tab.title).font(.system(size: 12, weight: .semibold)).lineLimit(1)
                     }
                     .foregroundStyle(selected ? .white : .white.opacity(0.6))
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 9)
-                    .background(Capsule().fill(selected ? Color.white.opacity(0.16) : .clear))
+                    .padding(.vertical, 8)
+                    .background(Capsule().fill(selected ? Color.white.opacity(0.18) : .clear))
                 }
                 .buttonStyle(.plain)
             }
@@ -255,16 +366,145 @@ struct LockWallpaperStudio: View {
         ScrollView {
             VStack(spacing: 10) {
                 switch editorTab {
-                case .layout:
-                    layoutControls
+                case .templates:
+                    templatesGrid
                 case .background:
                     backgroundControls
                 case .style:
                     styleControls
+                case .layout:
+                    layoutControls
                 }
             }
         }
-        .frame(height: 190)
+        .frame(height: 196)
+    }
+
+    private var templatesGrid: some View {
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
+            ForEach(LockTemplatePreset.all) { preset in
+                let selected = selectedPresetID == preset.id
+                Button {
+                    Haptics.tap()
+                    selectedPresetID = preset.id
+                    config = preset.config
+                } label: {
+                    HStack(spacing: 10) {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(LinearGradient(colors: preset.config.bg.previewColors, startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .frame(width: 36, height: 46)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .strokeBorder(preset.accent.opacity(0.75), lineWidth: 1.5)
+                            )
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(preset.name)
+                                .font(.system(size: 13.5, weight: .bold))
+                                .foregroundStyle(.white)
+                                .lineLimit(1)
+                            Text(preset.badge)
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.65))
+                                .lineLimit(1)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(8)
+                    .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.white.opacity(selected ? 0.16 : 0.07)))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(selected ? Color.accentSky : .clear, lineWidth: 1.5)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var backgroundControls: some View {
+        VStack(spacing: 10) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 5), spacing: 8) {
+                ForEach(LockWallpaperBg.allCases.filter { $0 != .photo }) { bg in
+                    let selected = config.bg == bg
+                    Button {
+                        Haptics.tap()
+                        selectedPresetID = nil
+                        config.bg = bg
+                    } label: {
+                        VStack(spacing: 4) {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(LinearGradient(colors: bg.previewColors, startPoint: .topLeading, endPoint: .bottomTrailing))
+                                .frame(height: 36)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .strokeBorder(selected ? Color.accentSky : Color.white.opacity(0.18), lineWidth: selected ? 2 : 1)
+                                )
+                            Text(bg.title)
+                                .font(.system(size: 9.5, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.8))
+                                .lineLimit(1)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            PhotosPicker(selection: $photoItem, matching: .images) {
+                Label("Chọn ảnh nền từ Thư viện", systemImage: "photo.on.rectangle.angled")
+                    .font(.system(size: 13.5, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 11)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.12)))
+            }
+        }
+    }
+
+    private var styleControls: some View {
+        VStack(spacing: 10) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
+                ForEach(LockCardStyle.allCases) { st in
+                    let selected = config.cardStyle == st
+                    Button {
+                        Haptics.tap()
+                        selectedPresetID = nil
+                        config.cardStyle = st
+                    } label: {
+                        Text(st.title)
+                            .font(.system(size: 12.5, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(RoundedRectangle(cornerRadius: 12).fill(selected ? Color.accentSky : Color.white.opacity(0.10)))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("Độ bo góc").font(.system(size: 12.5, weight: .semibold)).foregroundStyle(.white)
+                    Spacer()
+                    Text("\(Int(config.cornerRadius)) pt").font(.caption.monospaced()).foregroundStyle(.white.opacity(0.7))
+                }
+                Slider(value: $config.cornerRadius, in: 8...28, step: 2).tint(Color.accentSky)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.08)))
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("Vị trí dọc").font(.system(size: 12.5, weight: .semibold)).foregroundStyle(.white)
+                    Spacer()
+                    Text("\(Int(config.verticalOffset)) pt").font(.caption.monospaced()).foregroundStyle(.white.opacity(0.7))
+                }
+                Slider(value: $config.verticalOffset, in: -40...80, step: 5).tint(Color.accentSky)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.08)))
+        }
     }
 
     private var layoutControls: some View {
@@ -308,7 +548,7 @@ struct LockWallpaperStudio: View {
                     }
                 }
                 .padding(.horizontal, 12)
-                .padding(.vertical, 10)
+                .padding(.vertical, 9)
                 .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.white.opacity(0.08)))
             }
 
@@ -322,7 +562,7 @@ struct LockWallpaperStudio: View {
                         Image(systemName: "plus.circle.fill")
                         Text("Thêm thành phần")
                     }
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 13.5, weight: .bold))
                     .foregroundStyle(Color.accentSky)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
@@ -330,61 +570,6 @@ struct LockWallpaperStudio: View {
                 }
                 .buttonStyle(.plain)
             }
-        }
-    }
-
-    private var backgroundControls: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 8) {
-                ForEach([LockWallpaperBg.pureDark, .midnightBlue, .sunsetDusk]) { bg in
-                    let selected = config.bg == bg
-                    Button {
-                        Haptics.tap()
-                        config.bg = bg
-                    } label: {
-                        Text(bg.title)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(RoundedRectangle(cornerRadius: 12).fill(selected ? Color.accentSky : Color.white.opacity(0.10)))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-
-            PhotosPicker(selection: $photoItem, matching: .images) {
-                Label("Chọn ảnh nền từ Thư viện", systemImage: "photo.on.rectangle.angled")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.12)))
-            }
-        }
-    }
-
-    private var styleControls: some View {
-        VStack(spacing: 12) {
-            Toggle("Nền kính mờ cho từng thẻ", isOn: $config.showCardGlass)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.white)
-                .tint(Color.accentSky)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.08)))
-
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Text("Vị trí dọc").font(.system(size: 13, weight: .semibold)).foregroundStyle(.white)
-                    Spacer()
-                    Text("\(Int(config.verticalOffset)) pt").font(.caption.monospaced()).foregroundStyle(.white.opacity(0.7))
-                }
-                Slider(value: $config.verticalOffset, in: -40...80, step: 5).tint(Color.accentSky)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.08)))
         }
     }
 
@@ -403,7 +588,7 @@ struct LockWallpaperStudio: View {
                     }
                 }
             }
-            .navigationTitle("Thêm vào Lock Screen")
+            .navigationTitle("Thêm thành phần")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Đóng") { showAddBlock = false } }
@@ -428,7 +613,7 @@ struct LockWallpaperStudio: View {
                             Haptics.success()
                             savedToast = true
                         } label: {
-                            Label(savedToast ? "Đã lưu vào Ảnh ✓" : "Lưu vào Ảnh", systemImage: "arrow.down.to.line")
+                            Label(savedToast ? "Đã lưu ✓" : "Lưu vào Ảnh", systemImage: "arrow.down.to.line")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(CozyPillButtonStyle(tint: .accentSky, filled: true))
@@ -439,7 +624,7 @@ struct LockWallpaperStudio: View {
                         .buttonStyle(CozyPillButtonStyle(tint: .accentSky, filled: false))
                     }
 
-                    Text("Đặt ảnh này làm Hình nền Màn hình khóa (hoặc dùng Phím tắt “Tạo ảnh nền Lock Screen” để tự cập nhật mỗi sáng).")
+                    Text("Đặt ảnh này làm Hình nền Màn hình khóa, hoặc bấm ⚡ để cài tự động cập nhật bằng Phím tắt.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -461,7 +646,7 @@ struct LockWallpaperStudio: View {
                     Text("1. Mở app Phím tắt (Shortcuts) → Tự động hóa → +")
                     Text("2. Chọn Khi đóng app (Widgets / Lịch) hoặc 00:01 mỗi ngày → Chạy ngay lập tức")
                     Text("3. Thêm hành động: Update Lock Screen (của app Widgets)")
-                    Text("4. Thêm hành động: Đặt hình nền → chọn Màn hình khóa → tắt Hiện bản xem trước")
+                    Text("4. Thêm hành động: Đặt hình nền → Màn hình khóa → tắt Hiện bản xem trước")
                 }
             }
             .navigationTitle("Tự động cập nhật")
@@ -497,7 +682,7 @@ struct LockWallpaperStudio: View {
     }
 }
 
-// MARK: - Full-Screen Lock Screen Renderer (Dùng cho cả Preview & Xuất ảnh @3x)
+// MARK: - Full-Screen Lock Screen Renderer (@3x)
 
 struct LockWallpaperRenderView: View {
     var config: LockLayoutConfig
@@ -511,6 +696,9 @@ struct LockWallpaperRenderView: View {
     var partner: MemberStatus?
     var showMockClock: Bool
 
+    private var primaryText: Color { config.bg.isLight ? Color(RGBA(hex: "#141418")!) : .white }
+    private var secondaryText: Color { config.bg.isLight ? Color(RGBA(hex: "#63636A")!) : .white.opacity(0.68) }
+
     var body: some View {
         GeometryReader { geo in
             let w = geo.size.width
@@ -521,15 +709,14 @@ struct LockWallpaperRenderView: View {
                 backgroundLayer(size: geo.size)
 
                 VStack(spacing: 0) {
-                    // Vùng đồng hồ iOS Lock Screen (trống khi xuất ảnh thật để không đè đồng hồ iOS)
                     if showMockClock {
                         VStack(spacing: 2 * scale) {
                             Text(dateTitle)
                                 .font(.system(size: 16 * scale, weight: .semibold))
-                                .foregroundStyle(.white.opacity(0.9))
+                                .foregroundStyle(primaryText.opacity(0.88))
                             Text(now, style: .time)
                                 .font(.system(size: 76 * scale, weight: .bold, design: .rounded))
-                                .foregroundStyle(.white.opacity(0.92))
+                                .foregroundStyle(primaryText.opacity(0.92))
                                 .monospacedDigit()
                         }
                         .padding(.top, h * 0.08)
@@ -538,13 +725,12 @@ struct LockWallpaperRenderView: View {
                         Spacer().frame(height: h * 0.28)
                     }
 
-                    // Các khối dữ liệu thật kiểu Locka
-                    VStack(alignment: .leading, spacing: 14 * scale) {
+                    VStack(alignment: .leading, spacing: 12 * scale) {
                         ForEach(config.blocks) { block in
                             blockView(block, scale: scale)
                         }
                     }
-                    .padding(.horizontal, 22 * scale)
+                    .padding(.horizontal, 20 * scale)
                     .offset(y: config.verticalOffset * scale)
 
                     Spacer(minLength: 0)
@@ -554,14 +740,14 @@ struct LockWallpaperRenderView: View {
                             Image(systemName: "flashlight.off.fill")
                                 .font(.system(size: 16 * scale))
                                 .frame(width: 40 * scale, height: 40 * scale)
-                                .background(Circle().fill(Color.white.opacity(0.14)))
+                                .background(Circle().fill(primaryText.opacity(0.12)))
                             Spacer()
                             Image(systemName: "camera.fill")
                                 .font(.system(size: 16 * scale))
                                 .frame(width: 40 * scale, height: 40 * scale)
-                                .background(Circle().fill(Color.white.opacity(0.14)))
+                                .background(Circle().fill(primaryText.opacity(0.12)))
                         }
-                        .foregroundStyle(.white)
+                        .foregroundStyle(primaryText)
                         .padding(.horizontal, 34 * scale)
                         .padding(.bottom, 26 * scale)
                     }
@@ -572,60 +758,59 @@ struct LockWallpaperRenderView: View {
 
     @ViewBuilder
     private func backgroundLayer(size: CGSize) -> some View {
-        switch config.bg {
-        case .pureDark:
-            Color(RGBA(hex: "#141416")!)
-        case .midnightBlue:
-            LinearGradient(colors: [Color(RGBA(hex: "#141E30")!), Color(RGBA(hex: "#243B55")!)], startPoint: .top, endPoint: .bottom)
-        case .sunsetDusk:
-            LinearGradient(colors: [Color(RGBA(hex: "#1F1C2C")!), Color(RGBA(hex: "#614357")!), Color(RGBA(hex: "#232526")!)], startPoint: .topLeading, endPoint: .bottomTrailing)
-        case .photo:
-            if let bgImage {
-                Image(uiImage: bgImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: size.width, height: size.height)
-                    .clipped()
-                    .overlay(Color.black.opacity(0.28))
-            } else {
-                Color(RGBA(hex: "#141416")!)
-            }
+        if config.bg == .photo, let bgImage {
+            Image(uiImage: bgImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: size.width, height: size.height)
+                .clipped()
+                .overlay(Color.black.opacity(0.28))
+        } else {
+            LinearGradient(colors: config.bg.previewColors, startPoint: .topLeading, endPoint: .bottomTrailing)
         }
     }
 
     @ViewBuilder
     private func blockView(_ block: LockBlockKind, scale: CGFloat) -> some View {
+        let radius = config.cornerRadius * scale
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
+        let pad = config.cardStyle == .none ? 0 : 12 * scale
+
         Group {
             switch block {
-            case .weekStrip:
-                weekStripBlock(scale: scale)
-            case .todaySchedule:
-                todayScheduleBlock(scale: scale)
-            case .weather:
-                weatherBlock(scale: scale)
-            case .vocab:
-                vocabBlock(scale: scale)
-            case .partner:
-                partnerBlock(scale: scale)
-            case .monthGrid:
-                monthGridBlock(scale: scale)
+            case .weekStrip: weekStripBlock(scale: scale)
+            case .todaySchedule: todayScheduleBlock(scale: scale)
+            case .weather: weatherBlock(scale: scale)
+            case .vocab: vocabBlock(scale: scale)
+            case .partner: partnerBlock(scale: scale)
+            case .monthGrid: monthGridBlock(scale: scale)
             }
         }
-        .padding(config.showCardGlass ? 12 * scale : 0)
+        .padding(pad)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
-            if config.showCardGlass {
-                RoundedRectangle(cornerRadius: 16 * scale, style: .continuous)
-                    .fill(Color.black.opacity(0.38))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16 * scale, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
-                    )
+            switch config.cardStyle {
+            case .none:
+                EmptyView()
+            case .frostedGlass:
+                shape.fill(config.bg.isLight ? Color.white.opacity(0.75) : Color.black.opacity(0.36))
+                    .overlay(shape.strokeBorder(primaryText.opacity(0.14), lineWidth: 1))
+            case .solidSoft:
+                shape.fill(config.bg.isLight ? Color.white : Color.white.opacity(0.10))
+                    .overlay(shape.strokeBorder(primaryText.opacity(0.08), lineWidth: 1))
+            case .glowingBorder:
+                shape.fill(Color.black.opacity(0.32))
+                    .overlay(shape.strokeBorder(block.accent.opacity(0.7), lineWidth: 1.4))
+            case .hairlineOutline:
+                shape.strokeBorder(primaryText.opacity(0.28), lineWidth: 1.2)
+            case .dashedOutline:
+                shape.fill(Color.white.opacity(0.04))
+                    .overlay(shape.strokeBorder(primaryText.opacity(0.32), style: StrokeStyle(lineWidth: 1.2, dash: [5 * scale, 4 * scale])))
             }
         }
     }
 
-    // 1. Lịch tuần 7 ngày kiểu Locka (Mon 23 ... [Sat 28] ... Sun 29)
+    // 1. Lịch tuần 7 ngày
     private func weekStripBlock(scale: CGFloat) -> some View {
         let cal = Calendar.cozy
         let weekday = cal.component(.weekday, from: now)
@@ -641,22 +826,22 @@ struct LockWallpaperRenderView: View {
                 VStack(spacing: 3 * scale) {
                     Text(labels[i])
                         .font(.system(size: 11 * scale, weight: .semibold))
-                        .foregroundStyle(isToday ? .black : .white.opacity(0.65))
+                        .foregroundStyle(isToday ? (config.bg.isLight ? .white : .black) : secondaryText)
                     Text("\(dayNum)")
                         .font(.system(size: 16 * scale, weight: .bold, design: .rounded))
-                        .foregroundStyle(isToday ? .black : .white)
+                        .foregroundStyle(isToday ? (config.bg.isLight ? .white : .black) : primaryText)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 7 * scale)
                 .background(
                     RoundedRectangle(cornerRadius: 10 * scale, style: .continuous)
-                        .fill(isToday ? Color.white.opacity(0.88) : .clear)
+                        .fill(isToday ? (config.bg.isLight ? Color.accentSky : Color.white.opacity(0.90)) : .clear)
                 )
             }
         }
     }
 
-    // 2. Lịch trình hôm nay (kiểu Locka: tiêu đề cam "Hôm nay" + danh sách rõ ràng)
+    // 2. Lịch trình hôm nay
     private func todayScheduleBlock(scale: CGFloat) -> some View {
         let pending = schedule.filter { !$0.isDone }
         return VStack(alignment: .leading, spacing: 6 * scale) {
@@ -666,7 +851,7 @@ struct LockWallpaperRenderView: View {
             if pending.isEmpty {
                 Text("Không có sự kiện hôm nay · \(lunar.shortText) ÂL")
                     .font(.system(size: 13.5 * scale, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.65))
+                    .foregroundStyle(secondaryText)
             } else {
                 ForEach(pending.prefix(4)) { item in
                     HStack(spacing: 8 * scale) {
@@ -676,11 +861,11 @@ struct LockWallpaperRenderView: View {
                         if let t = item.timeText {
                             Text(t)
                                 .font(.system(size: 12.5 * scale, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.white.opacity(0.75))
+                                .foregroundStyle(secondaryText)
                         }
                         Text(item.title)
                             .font(.system(size: 14 * scale, weight: .semibold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(primaryText)
                             .lineLimit(1)
                     }
                 }
@@ -698,15 +883,15 @@ struct LockWallpaperRenderView: View {
                 VStack(alignment: .leading, spacing: 2 * scale) {
                     Text("\(w.temperatureText) \(w.placeName) · \(w.condition.displayName)")
                         .font(.system(size: 15 * scale, weight: .bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(primaryText)
                     Text("↑\(Int(w.highC.rounded()))° ↓\(Int(w.lowC.rounded()))° · Cảm giác \(Int(w.apparentC.rounded()))° · Ẩm \(Int((w.humidity * 100).rounded()))%")
                         .font(.system(size: 12 * scale))
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(secondaryText)
                 }
             } else {
                 Text("Thời tiết: Đang tải dữ liệu thật…")
                     .font(.system(size: 13 * scale))
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(secondaryText)
             }
         }
     }
@@ -718,11 +903,11 @@ struct LockWallpaperRenderView: View {
                 HStack(alignment: .firstTextBaseline, spacing: 8 * scale) {
                     Text(w.word)
                         .font(.system(size: 18 * scale, weight: .bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(primaryText)
                     if !w.phonetic.isEmpty {
                         Text(w.phonetic)
                             .font(.system(size: 12 * scale, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.65))
+                            .foregroundStyle(secondaryText)
                     }
                     Spacer()
                     Text("🔥 \(streak)")
@@ -731,7 +916,7 @@ struct LockWallpaperRenderView: View {
                 }
                 Text(w.meaning)
                     .font(.system(size: 13.5 * scale, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.85))
+                    .foregroundStyle(primaryText.opacity(0.85))
                     .lineLimit(2)
             }
         }
@@ -747,7 +932,7 @@ struct LockWallpaperRenderView: View {
                     HStack(spacing: 6 * scale) {
                         Text(p.displayName)
                             .font(.system(size: 15 * scale, weight: .bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(primaryText)
                         if let m = p.mood {
                             Text("· \(m.displayName)")
                                 .font(.system(size: 13 * scale, weight: .semibold))
@@ -757,19 +942,19 @@ struct LockWallpaperRenderView: View {
                     if !p.note.isEmpty {
                         Text(p.note)
                             .font(.system(size: 13 * scale))
-                            .foregroundStyle(.white.opacity(0.8))
+                            .foregroundStyle(primaryText.opacity(0.82))
                             .lineLimit(1)
                     }
                 }
             } else {
                 Text("Chưa kết nối người thương")
                     .font(.system(size: 13 * scale))
-                    .foregroundStyle(.white.opacity(0.65))
+                    .foregroundStyle(secondaryText)
             }
         }
     }
 
-    // 6. Lịch tháng gọn kiểu Locka
+    // 6. Lịch tháng gọn
     private func monthGridBlock(scale: CGFloat) -> some View {
         let cal = Calendar.cozy
         let comps = cal.dateComponents([.year, .month], from: now)
@@ -785,7 +970,7 @@ struct LockWallpaperRenderView: View {
                 ForEach(labels, id: \.self) { l in
                     Text(l)
                         .font(.system(size: 10 * scale, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.55))
+                        .foregroundStyle(secondaryText)
                         .frame(maxWidth: .infinity)
                 }
             }
@@ -798,9 +983,9 @@ struct LockWallpaperRenderView: View {
                         let isToday = day == todayDay
                         Text("\(day)")
                             .font(.system(size: 11 * scale, weight: isToday ? .heavy : .medium, design: .rounded))
-                            .foregroundStyle(isToday ? .black : .white.opacity(0.85))
+                            .foregroundStyle(isToday ? (config.bg.isLight ? .white : .black) : primaryText.opacity(0.88))
                             .frame(maxWidth: .infinity, minHeight: 18 * scale)
-                            .background(RoundedRectangle(cornerRadius: 5 * scale).fill(isToday ? Color.white : .clear))
+                            .background(RoundedRectangle(cornerRadius: 5 * scale).fill(isToday ? (config.bg.isLight ? Color.accentSky : Color.white) : .clear))
                     }
                 }
             }
