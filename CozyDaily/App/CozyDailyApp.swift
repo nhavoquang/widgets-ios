@@ -56,6 +56,12 @@ struct RootTabView: View {
 struct CozyShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(
+            intent: GenerateLockWallpaperIntent(),
+            phrases: ["Update Lock Screen \(.applicationName)", "Cập nhật màn hình khóa \(.applicationName)"],
+            shortTitle: "Update Lock Screen",
+            systemImageName: "lock.iphone"
+        )
+        AppShortcut(
             intent: QuickCheckInIntent(),
             phrases: ["Cập nhật mood \(.applicationName)", "Log mood in \(.applicationName)"],
             shortTitle: "Cập nhật mood",

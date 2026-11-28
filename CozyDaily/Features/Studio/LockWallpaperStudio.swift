@@ -49,7 +49,7 @@ enum LockBlockKind: String, CaseIterable, Identifiable, Codable {
     }
 }
 
-enum LockWallpaperBg: String, CaseIterable, Identifiable {
+enum LockWallpaperBg: String, CaseIterable, Identifiable, Codable {
     case pureDark
     case midnightBlue
     case sunsetDusk
@@ -67,23 +67,40 @@ enum LockWallpaperBg: String, CaseIterable, Identifiable {
     }
 }
 
-struct LockLayoutConfig: Equatable {
+struct LockLayoutConfig: Equatable, Codable {
     var blocks: [LockBlockKind] = [.weekStrip, .todaySchedule, .weather, .vocab]
     var bg: LockWallpaperBg = .pureDark
     var showCardGlass: Bool = false
     var verticalOffset: CGFloat = 0
+
+    private static let storageKey = "cozy.lockLayoutConfig.v1"
+
+    static func load() -> LockLayoutConfig {
+        guard let data = UserDefaults.standard.data(forKey: storageKey),
+              let cfg = try? JSONDecoder().decode(LockLayoutConfig.self, from: data) else {
+            return LockLayoutConfig()
+        }
+        return cfg
+    }
+
+    func save() {
+        if let data = try? JSONEncoder().encode(self) {
+            UserDefaults.standard.set(data, forKey: Self.storageKey)
+        }
+    }
 }
 
 // MARK: - Locka-Style Studio View
 
 struct LockWallpaperStudio: View {
     @Environment(AppModel.self) private var model
-    @State private var config = LockLayoutConfig()
+    @State private var config = LockLayoutConfig.load()
     @State private var editorTab: EditorTab = .layout
     @State private var photoItem: PhotosPickerItem?
     @State private var bgImage: UIImage?
     @State private var exportedImage: UIImage?
     @State private var showExportSheet = false
+    @State private var showShortcutGuide = false
     @State private var showAddBlock = false
     @State private var savedToast = false
 
@@ -119,6 +136,7 @@ struct LockWallpaperStudio: View {
             .padding(.bottom, 12)
         }
         .preferredColorScheme(.dark)
+        .onChange(of: config) { _, newValue in newValue.save() }
         .onChange(of: photoItem) { _, item in
             Task {
                 if let data = try? await item?.loadTransferable(type: Data.self),
@@ -130,23 +148,37 @@ struct LockWallpaperStudio: View {
         }
         .sheet(isPresented: $showAddBlock) { addBlockSheet }
         .sheet(isPresented: $showExportSheet) { exportSheet }
+        .sheet(isPresented: $showShortcutGuide) { shortcutGuideSheet }
     }
 
     // MARK: Top Bar
 
     private var topBar: some View {
-        HStack {
-            Text("Lock Screen Studio")
+        HStack(spacing: 8) {
+            Text("Lock Studio")
                 .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(.white)
             Spacer()
             Button {
+                Haptics.tap()
+                showShortcutGuide = true
+            } label: {
+                Image(systemName: "bolt.fill")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 34, height: 34)
+                    .background(Circle().fill(Color.white.opacity(0.14)))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Tự động cập nhật Shortcut")
+
+            Button {
                 exportWallpaper()
             } label: {
                 HStack(spacing: 5) {
-                    Image(systemName: "square.and.arrow.down")
-                        .font(.system(size: 13, weight: .bold))
-                    Text("Xuất ảnh nền")
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 12, weight: .bold))
+                    Text("Update Lock Screen")
                         .font(.system(size: 13, weight: .bold))
                 }
                 .foregroundStyle(.white)
@@ -414,12 +446,31 @@ struct LockWallpaperStudio: View {
                 }
             }
             .padding(20)
-            .navigationTitle("Ảnh nền Lock Screen")
+            .navigationTitle("Update Lock Screen")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Xong") { showExportSheet = false }.bold() }
             }
         }
+    }
+
+    private var shortcutGuideSheet: some View {
+        NavigationStack {
+            List {
+                Section("Tự động cập nhật (giống Locka)") {
+                    Text("1. Mở app Phím tắt (Shortcuts) → Tự động hóa → +")
+                    Text("2. Chọn Khi đóng app (Widgets / Lịch) hoặc 00:01 mỗi ngày → Chạy ngay lập tức")
+                    Text("3. Thêm hành động: Update Lock Screen (của app Widgets)")
+                    Text("4. Thêm hành động: Đặt hình nền → chọn Màn hình khóa → tắt Hiện bản xem trước")
+                }
+            }
+            .navigationTitle("Tự động cập nhật")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) { Button("Xong") { showShortcutGuide = false }.bold() }
+            }
+        }
+        .presentationDetents([.medium])
     }
 
     @MainActor
@@ -764,10 +815,10 @@ struct LockWallpaperRenderView: View {
     }
 }
 
-/// AppIntent cho Apple Shortcuts: tự render ảnh nền Lock Screen mới nhất (dùng với hành động "Đặt hình nền" mỗi sáng).
+/// AppIntent cho Apple Shortcuts: tự render ảnh nền Lock Screen mới nhất (dùng với hành động "Đặt hình nền" khi rời app hoặc 00:01).
 struct GenerateLockWallpaperIntent: AppIntent {
-    static let title: LocalizedStringResource = "Tạo ảnh nền Lock Screen"
-    static let description = IntentDescription("Tự vẽ ảnh nền Màn hình khóa gồm Lịch tuần, Lịch trình hôm nay, Thời tiết thật và Từ vựng để đặt làm hình nền tự động.")
+    static let title: LocalizedStringResource = "Update Lock Screen"
+    static let description = IntentDescription("Tự vẽ ảnh nền Màn hình khóa gồm Lịch tuần, Lịch trình hôm nay, Thời tiết thật và Từ vựng.")
 
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<IntentFile> {
@@ -775,7 +826,7 @@ struct GenerateLockWallpaperIntent: AppIntent {
         let now = Date()
         let snap = repo.snapshot(reload: true)
         let view = LockWallpaperRenderView(
-            config: LockLayoutConfig(),
+            config: LockLayoutConfig.load(),
             bgImage: nil,
             now: now,
             lunar: VietnameseLunarCalendar.lunarDate(from: now, calendar: repo.calendar),
