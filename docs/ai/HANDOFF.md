@@ -1,19 +1,11 @@
-# Session Handoff — Modern Lock Screen Studio (`Widgets`)
+# Session Handoff — Global 15-Language Lock Screen Studio (`Widgets`)
 
-## Vừa hoàn thành (`8bdbebd` & `0c56160`)
-- `CozyDaily/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png`:
-  - Thiết kế lại bằng hình học phẳng/vector 2x downsample (không dùng AI render), mô tả rõ khung Màn hình khóa iPhone + lưới Bento 1–2–3 cột trực quan.
-- `CozyDaily/Features/Studio/LockWallpaperStudio.swift`:
-  - Nâng cấp lên **hệ lưới Bento 1–4 cột** (`spanTwelfths` = `12` / `6` / `4` / `3` tương ứng `1 cột`, `1/2`, `1/3`, `1/4`).
-  - Hỗ trợ **nhấn giữ kéo thả trực tiếp (`.draggable` / `.dropDestination`)** để hoán đổi vị trí ô trong tab `Bố cục & Cột` + kéo tay dịch chuyển dọc trên khung Lock Screen.
-  - Mở rộng lên **12 loại khối dữ liệu thật** (Lịch tuần, Lịch trình hôm nay, Thời tiết thật, Từ vựng, Người kết nối, Lịch tháng, Đếm ngày sự kiện, Tiến độ năm %, Chuỗi học 7 ngày, Âm lịch, Ghi chú ghim, Pin iPhone) và **16 mẫu hiện đại**.
-  - Thêm thanh tùy chỉnh sâu: **Độ bo góc**, **Khoảng cách giữa các ô**, **Cỡ chữ (%)**, **Độ đậm nền thẻ (%)**, **Vị trí dọc**.
-  - UX Shortcut 1 lần duy nhất (`shortcutInstalled`): cài xong lần đầu thì nút `Update Lock Screen` chạy thẳng Shortcut; `GenerateLockWallpaperIntent` tự đồng bộ Thời tiết + iCloud + Lịch Apple trước khi vẽ ảnh.
-- `Shared/Widgets/CozyWidgetViews.swift` + `Shared/Intents/CozyIntents.swift`:
-  - Thêm nút tương tác `↻` (`NextVocabIntent`) bấm đổi từ trực tiếp ngay trên Widget Lock Screen (iOS 17 Interactive Widget).
-- Kiểm chứng: `swift test --package-path Packages/CozyCore` — **39/39 PASS**.
+## Vừa hoàn thành (`bc50971`)
+- **Đa ngôn ngữ toàn cầu (15 ngôn ngữ App Store):**
+  - `Packages/CozyCore/Sources/CozyCore/Models/Localization.swift`: Thêm `AppLanguage` & `CozyL10n` hỗ trợ **15 ngôn ngữ phổ biến nhất trên App Store** (`en`, `vi`, `ja`, `ko`, `zh-Hans`, `zh-Hant`, `es`, `fr`, `de`, `pt-BR`, `th`, `id`, `ru`, `it`, `ar`) + chế độ `.system` tự động theo ngôn ngữ iPhone (fallback chuẩn sang Tiếng Anh).
+  - `project.yml`, `Shared/Localization/Localizable.xcstrings`, `CozyDaily/Resources/InfoPlist.xcstrings`: Khai báo đủ 15 `knownRegions` cho App Store Connect + dịch thông báo cấp quyền iOS (Location, Calendar, Photos) đủ 15 thứ tiếng.
+  - `SettingsSheet.swift` + `AppModel.swift` + `LockWallpaperStudio.swift` + `CozyWidgetViews.swift`: Cho phép đổi ngôn ngữ trực tiếp ngay trong Cài đặt mà không cần khởi động lại app; tự động đồng bộ thứ trong tuần (`Mon..Sun` / `月..日` / `월..일` / `T2..CN`…), định dạng ngày tháng, thời tiết, cảm xúc, tên thành phần Lock Studio và cả ảnh nền vẽ qua Shortcut chạy ngầm!
+- **Kiểm chứng:** `swift test --package-path Packages/CozyCore` — **40/40 unit tests PASS**.
 
-## Việc tiếp theo (Chờ user gửi lại link iCloud Shortcut chuẩn mới)
-```text
-Đọc docs/ai/HANDOFF.md, cập nhật link iCloud Shortcut mới do user gửi vào `LockWallpaperStudio.templateShortcutShareURL`, commit và hướng dẫn push.
-```
+## Việc tiếp theo
+- Chờ user gửi link iCloud Shortcut mới (đã bỏ `Wallpaper 7` và bật đủ Auto) để cập nhật `LockWallpaperStudio.templateShortcutShareURL`.
