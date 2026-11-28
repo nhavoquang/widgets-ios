@@ -200,8 +200,8 @@ struct LockTemplatePreset: Identifiable {
 // MARK: - Locka-Style Studio View
 
 struct LockWallpaperStudio: View {
-    /// Dán link iCloud Shortcut mẫu của bạn vào đây sau khi tạo trên iPhone (vd: "https://www.icloud.com/shortcuts/xxxxx").
-    static let templateShortcutShareURL = ""
+    /// Link iCloud Shortcut mẫu (user bấm 1 chạm để cài vào Phím tắt).
+    static let templateShortcutShareURL = "https://www.icloud.com/shortcuts/71703e2781b04ca2951065fd03bc56d4"
     static let shortcutName = "Update Lock Screen"
 
     @Environment(AppModel.self) private var model
@@ -685,11 +685,26 @@ struct LockWallpaperStudio: View {
     private var shortcutGuideSheet: some View {
         NavigationStack {
             List {
-                Section("Tự động cập nhật (giống Locka)") {
-                    Text("1. Mở app Phím tắt (Shortcuts) → Tự động hóa → +")
-                    Text("2. Chọn Khi đóng app (Widgets / Lịch) hoặc 00:01 mỗi ngày → Chạy ngay lập tức")
-                    Text("3. Thêm hành động: Update Lock Screen (của app Widgets)")
-                    Text("4. Thêm hành động: Đặt hình nền → Màn hình khóa → tắt Hiện bản xem trước")
+                Section {
+                    if let shareURL = URL(string: Self.templateShortcutShareURL), !Self.templateShortcutShareURL.isEmpty {
+                        Button {
+                            openURL(shareURL)
+                        } label: {
+                            Label("Cài Shortcut tự động (1 chạm)", systemImage: "plus.app.fill")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundStyle(Color.accentSky)
+                        }
+                    }
+                    Button {
+                        runLockScreenShortcut()
+                    } label: {
+                        Label("Chạy Update Lock Screen ngay ⚡", systemImage: "bolt.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                    }
+                }
+                Section("Sau khi cài (chỉ làm 1 lần)") {
+                    Text("1. Mở Shortcut vừa cài → chạm chọn Wallpaper Màn hình khóa của bạn")
+                    Text("2. Bật 2 công tắc Automation phía trên để tự cập nhật khi đóng app & 00:01 mỗi ngày")
                 }
             }
             .navigationTitle("Tự động cập nhật")
