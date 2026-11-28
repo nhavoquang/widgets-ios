@@ -200,10 +200,16 @@ struct LockTemplatePreset: Identifiable {
 // MARK: - Locka-Style Studio View
 
 struct LockWallpaperStudio: View {
+    /// Dán link iCloud Shortcut mẫu của bạn vào đây sau khi tạo trên iPhone (vd: "https://www.icloud.com/shortcuts/xxxxx").
+    static let templateShortcutShareURL = ""
+    static let shortcutName = "Update Lock Screen"
+
     @Environment(AppModel.self) private var model
+    @Environment(\.openURL) private var openURL
     @State private var config = LockLayoutConfig.load()
     @State private var selectedPresetID: String? = "minimal-dark"
     @State private var editorTab: EditorTab = .templates
+    @State private var dragDeltaY: CGFloat = 0
     @State private var photoItem: PhotosPickerItem?
     @State private var bgImage: UIImage?
     @State private var exportedImage: UIImage?
@@ -309,7 +315,7 @@ struct LockWallpaperStudio: View {
             let w = min(geo.size.width * 0.60, maxH * (9.0 / 19.5))
             let h = w * (19.5 / 9.0)
             LockWallpaperRenderView(
-                config: config,
+                config: liveDraggedConfig,
                 bgImage: bgImage,
                 now: model.now,
                 lunar: model.lunarToday,
@@ -327,10 +333,27 @@ struct LockWallpaperStudio: View {
                     .strokeBorder(Color.white.opacity(0.18), lineWidth: 1.5)
             )
             .shadow(color: .black.opacity(0.5), radius: 18, y: 8)
+            .gesture(
+                DragGesture()
+                    .onChanged { value in
+                        dragDeltaY = value.translation.height * (393.0 / max(w, 1))
+                    }
+                    .onEnded { _ in
+                        config.verticalOffset = min(max(config.verticalOffset + dragDeltaY, -60), 120)
+                        dragDeltaY = 0
+                        Haptics.tap()
+                    }
+            )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .animation(.easeOut(duration: 0.2), value: config)
+            .animation(.easeOut(duration: 0.18), value: config)
         }
         .frame(minHeight: 330)
+    }
+
+    private var liveDraggedConfig: LockLayoutConfig {
+        var c = config
+        c.verticalOffset = min(max(config.verticalOffset + dragDeltaY, -60), 120)
+        return c
     }
 
     // MARK: Editor Tab Bar
@@ -607,21 +630,41 @@ struct LockWallpaperStudio: View {
                         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                         .frame(maxHeight: 420)
 
-                    HStack(spacing: 10) {
+                    VStack(spacing: 10) {
                         Button {
-                            UIImageWriteToSavedPhotosAlbum(ui, nil, nil, nil)
-                            Haptics.success()
-                            savedToast = true
+                            runLockScreenShortcut()
                         } label: {
-                            Label(savedToast ? "Đã lưu ✓" : "Lưu vào Ảnh", systemImage: "arrow.down.to.line")
+                            Label("Áp dụng ngay bằng Shortcut ⚡", systemImage: "bolt.fill")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(CozyPillButtonStyle(tint: .accentSky, filled: true))
 
-                        ShareLink(item: Image(uiImage: ui), preview: SharePreview("Lock Screen", image: Image(uiImage: ui))) {
-                            Label("Chia sẻ", systemImage: "square.and.arrow.up")
+                        if let shareURL = URL(string: Self.templateShortcutShareURL), !Self.templateShortcutShareURL.isEmpty {
+                            Button {
+                                openURL(shareURL)
+                            } label: {
+                                Label("Cài Shortcut mẫu (1 chạm)", systemImage: "plus.app.fill")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(CozyPillButtonStyle(tint: .accentSage, filled: false))
                         }
-                        .buttonStyle(CozyPillButtonStyle(tint: .accentSky, filled: false))
+
+                        HStack(spacing: 10) {
+                            Button {
+                                UIImageWriteToSavedPhotosAlbum(ui, nil, nil, nil)
+                                Haptics.success()
+                                savedToast = true
+                            } label: {
+                                Label(savedToast ? "Đã lưu ✓" : "Lưu vào Ảnh", systemImage: "arrow.down.to.line")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(CozyPillButtonStyle(tint: .inkTaupe, filled: false))
+
+                            ShareLink(item: Image(uiImage: ui), preview: SharePreview("Lock Screen", image: Image(uiImage: ui))) {
+                                Label("Chia sẻ", systemImage: "square.and.arrow.up")
+                            }
+                            .buttonStyle(CozyPillButtonStyle(tint: .inkTaupe, filled: false))
+                        }
                     }
 
                     Text("Đặt ảnh này làm Hình nền Màn hình khóa, hoặc bấm ⚡ để cài tự động cập nhật bằng Phím tắt.")
@@ -656,6 +699,14 @@ struct LockWallpaperStudio: View {
             }
         }
         .presentationDetents([.medium])
+    }
+
+    private func runLockScreenShortcut() {
+        config.save()
+        let encoded = Self.shortcutName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "Update%20Lock%20Screen"
+        if let url = URL(string: "shortcuts://run-shortcut?name=\(encoded)") {
+            openURL(url)
+        }
     }
 
     @MainActor

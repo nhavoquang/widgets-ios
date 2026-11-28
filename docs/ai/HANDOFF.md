@@ -1,12 +1,12 @@
-# Session Handoff — Modern Clean iOS UI (`Widgets Home & Lock`)
+# Session Handoff — Modern Lock Screen Studio (`Widgets Home & Lock`)
 
-> Hướng thiết kế mới đã chốt với user: **UI hiện đại, tối giản chuẩn iOS (KHÔNG dùng style mèo/chó/linh vật)** và **tên pure SEO `Widgets Home & Lock` (bỏ tên Cozy)**.
+## Vừa hoàn thành
+- `CozyDaily/Features/Studio/LockWallpaperStudio.swift`:
+  - 10 mẫu Lock Screen hiện đại (nền, viền, bo góc, sáng/tối) + 6 kiểu thẻ + chọn ảnh nền từ Thư viện.
+  - Hỗ trợ **kéo thả vị trí dọc trực tiếp bằng tay (`DragGesture`)** trên khung Lock Screen.
+  - Tích hợp nút **Áp dụng ngay bằng Shortcut ⚡** (`shortcuts://run-shortcut?name=Update%20Lock%20Screen`) và sẵn chỗ dán `templateShortcutShareURL` (`icloud.com/shortcuts/...`) để user bấm 1 chạm cài Shortcut mẫu.
 
-## Vừa cập nhật
-- `docs/ai/ASO.md`: Chốt tên pure SEO `Widgets Home & Lock` (EN) & `Widget Màn Hình Khóa & Chính` (VN) kèm Subtitle/Keywords không trùng.
-- `docs/ai/DESIGN_SPEC.md` & `docs/ai/TASK_QUEUE.md`: Bỏ hoàn toàn style CatDays/mèo/chó, chuyển toàn bộ lộ trình sang **Modern Clean iOS UI** (`S-04`, `S-05`, `S-06`).
-
-## Prompt mở session mới (copy-paste để chạy Slice S-04 ngay, tiết kiệm token)
+## Prompt mở session mới (Slice S-05: Mở rộng 20+ mẫu Lock Screen & 12+ khối hiện đại + kéo thả tự do từng khối)
 ```text
-Đọc docs/ai/HANDOFF.md và docs/ai/DESIGN_SPEC.md, sau đó thực hiện duy nhất Slice S-04 trong docs/ai/TASK_QUEUE.md (chuyển toàn bộ giao diện App & Widget sang phong cách Modern Clean iOS, bỏ hoàn toàn linh vật mèo/chó và tên Cozy). Chỉ đọc đúng Target files của S-04, chạy swift test và commit khi xong.
+Đọc docs/ai/HANDOFF.md và docs/ai/DESIGN_SPEC.md, nâng cấp LockWallpaperStudio.swift lên 20+ mẫu Lock Screen hiện đại (lấy cảm hứng từ Widgy / Locka / Apple iOS 18) và thêm các khối mới (Tiến độ năm 2026 %, Đếm ngược sự kiện, Giấy nhớ Sticky Note, Chuỗi thói quen 7 ngày, Lịch 3 tháng, Pin thiết bị) kèm kéo thả vị trí mượt mà.
 ```
