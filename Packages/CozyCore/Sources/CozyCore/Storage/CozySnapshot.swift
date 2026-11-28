@@ -31,6 +31,8 @@ public struct UserSettings: Codable, Hashable, Sendable {
     public var shareWeatherWithSpaces: Bool
     public var shareDeviceBattery: Bool
     public var syncAppleCalendar: Bool
+    public var syncAppleReminders: Bool
+    public var weekStartDay: WeekStartDay
     public var hasOnboarded: Bool
     public var appearance: AppAppearance
     public var hapticsEnabled: Bool
@@ -44,6 +46,8 @@ public struct UserSettings: Codable, Hashable, Sendable {
         shareWeatherWithSpaces: Bool = true,
         shareDeviceBattery: Bool = true,
         syncAppleCalendar: Bool = false,
+        syncAppleReminders: Bool = false,
+        weekStartDay: WeekStartDay = .monday,
         hasOnboarded: Bool = false,
         appearance: AppAppearance = .system,
         hapticsEnabled: Bool = true,
@@ -56,6 +60,8 @@ public struct UserSettings: Codable, Hashable, Sendable {
         self.shareWeatherWithSpaces = shareWeatherWithSpaces
         self.shareDeviceBattery = shareDeviceBattery
         self.syncAppleCalendar = syncAppleCalendar
+        self.syncAppleReminders = syncAppleReminders
+        self.weekStartDay = weekStartDay
         self.hasOnboarded = hasOnboarded
         self.appearance = appearance
         self.hapticsEnabled = hapticsEnabled
@@ -64,7 +70,7 @@ public struct UserSettings: Codable, Hashable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case displayName, species, activeDecks, shareWeatherWithSpaces, shareDeviceBattery, syncAppleCalendar, hasOnboarded, appearance, hapticsEnabled, weatherLocation, language
+        case displayName, species, activeDecks, shareWeatherWithSpaces, shareDeviceBattery, syncAppleCalendar, syncAppleReminders, weekStartDay, hasOnboarded, appearance, hapticsEnabled, weatherLocation, language
     }
 
     public init(from decoder: Decoder) throws {
@@ -75,6 +81,8 @@ public struct UserSettings: Codable, Hashable, Sendable {
         self.shareWeatherWithSpaces = try c.decodeIfPresent(Bool.self, forKey: .shareWeatherWithSpaces) ?? true
         self.shareDeviceBattery = try c.decodeIfPresent(Bool.self, forKey: .shareDeviceBattery) ?? true
         self.syncAppleCalendar = try c.decodeIfPresent(Bool.self, forKey: .syncAppleCalendar) ?? false
+        self.syncAppleReminders = try c.decodeIfPresent(Bool.self, forKey: .syncAppleReminders) ?? false
+        self.weekStartDay = try c.decodeIfPresent(WeekStartDay.self, forKey: .weekStartDay) ?? .monday
         self.hasOnboarded = try c.decodeIfPresent(Bool.self, forKey: .hasOnboarded) ?? false
         self.appearance = try c.decodeIfPresent(AppAppearance.self, forKey: .appearance) ?? .system
         self.hapticsEnabled = try c.decodeIfPresent(Bool.self, forKey: .hapticsEnabled) ?? true

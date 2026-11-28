@@ -35,6 +35,15 @@ public struct VocabWord: Codable, Hashable, Sendable, Identifiable {
     public var example: String
     public var deck: VocabDeck
 
+    /// Giải nghĩa phù hợp với ngôn ngữ máy: Tiếng Việt hiện nghĩa Việt, khách quốc tế hiện định nghĩa Tiếng Anh + câu ví dụ (không bao giờ lộ tiếng Việt cho khách ngoại!).
+    public func localizedMeaning(for lang: AppLanguage = CozyL10n.effective) -> String {
+        if lang.resolved == .vi { return meaning }
+        if let enDef = VocabSeed.englishDefinitions[word.lowercased()] {
+            return enDef
+        }
+        return example.isEmpty ? meaning : example
+    }
+
     public init(id: String? = nil, word: String, phonetic: String, meaning: String, example: String, deck: VocabDeck) {
         self.id = id ?? "\(deck.rawValue):\(word.lowercased())"
         self.word = word

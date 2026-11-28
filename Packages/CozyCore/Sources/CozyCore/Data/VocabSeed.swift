@@ -1,8 +1,51 @@
 import Foundation
 
-/// Kho từ vựng mẫu đi kèm app (offline). Có thể mở rộng bằng file JSON ở giai đoạn sau.
+/// Kho từ vựng mẫu đi kèm app (offline), kèm định nghĩa Anh-Anh chuẩn cho khách quốc tế.
 public enum VocabSeed {
     public static let all: [VocabWord] = daily + idioms + exam + healing
+
+    public static let englishDefinitions: [String: String] = [
+        "grab a bite": "get something quick to eat",
+        "run late": "be behind schedule",
+        "catch up": "talk to someone and share recent news",
+        "hang out": "spend relaxing time together",
+        "take a rain check": "politely postpone an invitation to another time",
+        "errand": "a short trip to do a daily task",
+        "leftovers": "food remaining from an earlier meal",
+        "commute": "regular daily travel between home and work",
+        "doze off": "fall lightly asleep unintentionally",
+        "treat yourself": "do something special and enjoyable for yourself",
+        "a piece of cake": "something very easy to accomplish",
+        "under the weather": "feeling slightly unwell or tired",
+        "spill the tea": "share exciting gossip or news",
+        "hit the sack": "go to bed to sleep",
+        "vibe check": "a quick check on mood or atmosphere",
+        "once in a blue moon": "very rarely",
+        "break the ice": "relieve tension and start a friendly conversation",
+        "low-key": "quietly, modestly, or secretly",
+        "on cloud nine": "extremely happy and delighted",
+        "call it a day": "stop working for the rest of the day",
+        "mitigate": "make something less severe or painful",
+        "substantial": "large in size, value, or importance",
+        "inevitable": "certain to happen; unavoidable",
+        "allocate": "distribute resources or time for a purpose",
+        "prominent": "important, famous, or easy to notice",
+        "deteriorate": "become progressively worse",
+        "feasible": "possible and practical to do easily",
+        "consensus": "general agreement among a group",
+        "commence": "begin or start officially",
+        "fluctuate": "rise and fall irregularly",
+        "serene": "calm, peaceful, and untroubled",
+        "cozy": "warm, comfortable, and safe",
+        "resilient": "able to recover quickly from difficulties",
+        "unwind": "relax after a period of work or tension",
+        "gratitude": "thankfulness and appreciation",
+        "self-compassion": "being kind and understanding toward yourself",
+        "bloom": "grow, flourish, and thrive",
+        "solace": "comfort in a time of distress",
+        "hygge": "cozy contentment and well-being",
+        "breathe": "pause, inhale deeply, and regain calm",
+    ]
 
     public static let daily: [VocabWord] = [
         VocabWord(word: "grab a bite", phonetic: "/ɡræb ə baɪt/", meaning: "ăn nhanh một chút", example: "Let's grab a bite before the movie.", deck: .daily),

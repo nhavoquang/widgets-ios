@@ -262,7 +262,7 @@ private struct OpenMeteoResponse: Decodable {
     var daily: Daily
 }
 
-// MARK: - Apple Calendar (EventKit)
+// MARK: - Apple Calendar & Apple Reminders (EventKit)
 
 @MainActor
 final class CalendarImportService {
@@ -276,11 +276,44 @@ final class CalendarImportService {
         return store.events(matching: predicate).prefix(30).map { ek in
             CozyEvent(
                 id: UUID(uuidString: Self.stableUUID(ek.eventIdentifier ?? ek.title)) ?? UUID(),
-                title: ek.title ?? "Sự kiện",
+                title: ek.title ?? "Event",
                 emoji: "🗓️",
                 kind: ek.isAllDay ? .countdown(date: ek.startDate, repeatsYearly: false) : .deadline(due: ek.startDate),
                 accent: .accentSky,
                 externalIdentifier: ek.eventIdentifier
+            )
+        }
+    }
+
+    /// Đọc các Lời nhắc (Apple Reminders) chưa hoàn thành của hôm nay (hoặc chưa đặt hạn) để đưa thẳng lên Lock Screen!
+    func todayReminders(now: Date = Date()) async -> [CozyTask] {
+        guard (try? await store.requestFullAccessToReminders()) == true else { return [] }
+        let predicate = store.predicateForIncompleteReminders(
+            withDueDateStarting: nil,
+            ending: Calendar.cozy.date(byAdding: .day, value: 1, to: Calendar.cozy.startOfDay(for: now)),
+            calendars: nil
+        )
+        let reminders: [EKReminder] = await withCheckedContinuation { cont in
+            store.fetchReminders(matching: predicate) { list in
+                cont.resume(returning: list ?? [])
+            }
+        }
+        let todayKey = Calendar.cozy.dayKey(for: now)
+        return reminders.prefix(20).compactMap { rem in
+            let title = (rem.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !title.isEmpty else { return nil }
+            let timeStr: String? = {
+                guard let comps = rem.dueDateComponents, let h = comps.hour, let m = comps.minute else { return nil }
+                return String(format: "%02d:%02d", h, m)
+            }()
+            let stableID = UUID(uuidString: Self.stableUUID("rem-\(rem.calendarItemIdentifier)")) ?? UUID()
+            return CozyTask(
+                id: stableID,
+                title: title,
+                dayKey: todayKey,
+                timeText: timeStr,
+                isDone: rem.isCompleted,
+                accent: .accentHoney
             )
         }
     }

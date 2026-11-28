@@ -243,9 +243,26 @@ final class SpaceMergeTests: XCTestCase {
             XCTAssertFalse(CozyL10n.t("weather.rain", lang: lang).isEmpty)
         }
 
-        // Giải mã JSON UserSettings cũ chưa có trường `language` phải mặc định về `.system`
+        // Giải mã JSON UserSettings cũ chưa có trường `language`, `weekStartDay`, `syncAppleReminders`
         let legacyJSON = #"{"displayName":"An","species":"cat"}"#.data(using: .utf8)!
         let decoded = try JSONDecoder().decode(UserSettings.self, from: legacyJSON)
         XCTAssertEqual(decoded.language, .system)
+        XCTAssertEqual(decoded.weekStartDay, .monday)
+        XCTAssertFalse(decoded.syncAppleReminders)
+
+        // Kiểm tra Chủ Nhật đứng đầu tuần cho Mỹ/Nhật/Hàn khi bật `.sunday`
+        XCTAssertEqual(CozyL10n.weekdayShortLabels(for: .en, startDay: .sunday).first, "Sun")
+        XCTAssertEqual(CozyL10n.weekdayShortLabels(for: .ja, startDay: .sunday).first, "日")
+        XCTAssertEqual(CozyL10n.weekdayShortLabels(for: .vi, startDay: .monday).first, "T2")
+
+        // Kiểm tra Daily Quotes đủ 15 ngôn ngữ và Từ vựng quốc tế không lộ nghĩa tiếng Việt
+        for lang in AppLanguage.allCases where lang != .system {
+            let quote = DailyQuotesCatalog.quoteOfTheDay(on: t0, lang: lang)
+            XCTAssertFalse(quote.text.isEmpty)
+        }
+        let sampleWord = VocabSeed.daily.first! // "grab a bite"
+        XCTAssertEqual(sampleWord.localizedMeaning(for: .vi), "ăn nhanh một chút")
+        XCTAssertEqual(sampleWord.localizedMeaning(for: .en), "get something quick to eat")
+        XCTAssertEqual(sampleWord.localizedMeaning(for: .ja), "get something quick to eat")
     }
 }

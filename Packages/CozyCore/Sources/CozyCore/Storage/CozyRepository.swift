@@ -360,6 +360,16 @@ public final class CozyRepository: @unchecked Sendable {
         }
     }
 
+    public func upsertTask(_ task: CozyTask) {
+        mutate([.events]) { s in
+            if let idx = s.tasks.firstIndex(where: { $0.id == task.id }) {
+                s.tasks[idx] = task
+            } else {
+                s.tasks.append(task)
+            }
+        }
+    }
+
     public func tasks(on day: Date) -> [CozyTask] {
         let key = calendar.dayKey(for: day)
         return snapshot(reload: true).tasks

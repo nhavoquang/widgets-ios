@@ -260,7 +260,7 @@ private struct VocabHome: View {
                     }
                 }
                 WidgetSoftSurface(tint: Color.accentSage, isDark: data.theme == .night) {
-                    Text(w.meaning)
+                    Text(w.localizedMeaning())
                         .font(.system(size: 12.5, weight: .semibold, design: .rounded))
                         .lineLimit(family == .systemLarge ? 3 : 2)
                         .cozySwap(w.id)
@@ -1067,12 +1067,12 @@ private struct RectangularAccessory: View {
                             .lineLimit(1)
                     }
                     if data.config.hideMeaningOnLockScreen {
-                        Text(w.meaning)
+                        Text(w.localizedMeaning())
                             .font(.system(size: 13, weight: .medium))
                             .lineLimit(1)
                             .privacySensitive()
                     } else {
-                        Text(w.meaning)
+                        Text(w.localizedMeaning())
                             .font(.system(size: 13, weight: .medium))
                             .lineLimit(1)
                     }

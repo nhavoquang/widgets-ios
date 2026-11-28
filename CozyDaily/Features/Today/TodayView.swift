@@ -337,7 +337,7 @@ private struct VocabCard: View {
                     Haptics.tap()
                     withAnimation(.easeOut(duration: 0.2)) { revealed.toggle() }
                 } label: {
-                    Text(revealed ? w.meaning : "Xem nghĩa")
+                    Text(revealed ? w.localizedMeaning() : (CozyL10n.effective.isVietnamese ? "Xem nghĩa" : "Tap to reveal meaning"))
                         .font(.system(size: 14, weight: revealed ? .semibold : .medium))
                         .foregroundStyle(revealed ? Color.inkCoffee : Color.inkTaupe)
                         .frame(maxWidth: .infinity, alignment: .leading)

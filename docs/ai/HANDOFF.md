@@ -1,11 +1,21 @@
-# Session Handoff — Global 15-Language Lock Screen Studio (`Widgets`)
+# Session Handoff — Stage 1 Completed (`Widgets: Lock Screen Calendar`)
 
-## Vừa hoàn thành (`bc50971`)
-- **Đa ngôn ngữ toàn cầu (15 ngôn ngữ App Store):**
-  - `Packages/CozyCore/Sources/CozyCore/Models/Localization.swift`: Thêm `AppLanguage` & `CozyL10n` hỗ trợ **15 ngôn ngữ phổ biến nhất trên App Store** (`en`, `vi`, `ja`, `ko`, `zh-Hans`, `zh-Hant`, `es`, `fr`, `de`, `pt-BR`, `th`, `id`, `ru`, `it`, `ar`) + chế độ `.system` tự động theo ngôn ngữ iPhone (fallback chuẩn sang Tiếng Anh).
-  - `project.yml`, `Shared/Localization/Localizable.xcstrings`, `CozyDaily/Resources/InfoPlist.xcstrings`: Khai báo đủ 15 `knownRegions` cho App Store Connect + dịch thông báo cấp quyền iOS (Location, Calendar, Photos) đủ 15 thứ tiếng.
-  - `SettingsSheet.swift` + `AppModel.swift` + `LockWallpaperStudio.swift` + `CozyWidgetViews.swift`: Cho phép đổi ngôn ngữ trực tiếp ngay trong Cài đặt mà không cần khởi động lại app; tự động đồng bộ thứ trong tuần (`Mon..Sun` / `月..日` / `월..일` / `T2..CN`…), định dạng ngày tháng, thời tiết, cảm xúc, tên thành phần Lock Studio và cả ảnh nền vẽ qua Shortcut chạy ngầm!
-- **Kiểm chứng:** `swift test --package-path Packages/CozyCore` — **40/40 unit tests PASS**.
+## Vừa hoàn thành (Chặng 1 — Viral Features & Global Content)
+- `Packages/CozyCore/Sources/CozyCore/Data/DailyQuotes.swift` + `VocabSeed.swift` + `Models/Vocab.swift`:
+  - Bộ **Daily Quotes / Stoic & Focus Affirmations** đủ **15 ngôn ngữ** + tự động hiển thị định nghĩa Anh–Anh chuẩn cho kho từ vựng khi ngôn ngữ máy khác Tiếng Việt.
+  - Thêm `WeekStartDay` (`.monday` / `.sunday`) và `syncAppleReminders` vào `UserSettings` (tương thích ngược JSON cũ).
+- `CozyDaily/App/Services.swift` + `AppModel.swift` + `SettingsSheet.swift` + `project.yml`:
+  - Tích hợp đồng bộ **Apple Reminders (`EKReminder`)** tự động đưa nhắc việc hôm nay lên Lock Screen & Shortcut chạy ngầm.
+  - Thêm chọn **Ngày bắt đầu tuần (Thứ Hai / Chủ Nhật)** và công tắc **Đồng bộ Lời nhắc** ngay trong Cài đặt.
+- `CozyDaily/Features/Studio/LockWallpaperStudio.swift`:
+  - Thêm 3 khối ăn khách mới (nâng tổng lên **15 loại khối** & **18 mẫu dựng sẵn**):
+    1. **Lưới 365 chấm Year Progress (`yearDots`)** — vẽ tĩnh 37×10 không dùng `LazyVGrid`, chấm ngày hôm nay phát sáng.
+    2. **Thanh đếm nhiều sự kiện (`multiCountdown`)** — thanh progress màu sắc kiểu *Pretty Progress*.
+    3. **Câu nói truyền cảm hứng (`dailyQuote`)** — tự đổi theo 15 ngôn ngữ.
+  - Thêm thanh trượt **Độ tối ảnh nền (`photoDim`)** & **Độ mờ ảnh nền (`photoBlur`)** khi người dùng chọn ảnh cá nhân từ Thư viện.
+- Kiểm chứng: `swift test --package-path Packages/CozyCore` — **40/40 PASS**.
 
-## Việc tiếp theo
-- Chờ user gửi link iCloud Shortcut mới (đã bỏ `Wallpaper 7` và bật đủ Auto) để cập nhật `LockWallpaperStudio.templateShortcutShareURL`.
+## Prompt mẫu mở session mới làm Chặng 2 (Copy-paste)
+```text
+Đọc docs/ai/HANDOFF.md và docs/ai/TASK_QUEUE.md, triển khai Chặng 2: Tích hợp StoreKit 2 Paywall hiện đại (gói Yearly 59k-79k & Lifetime 139k tự động hiển thị giá bản địa theo Store từng nước + Restore Purchases, cho thử tính năng Pro trên Preview trước khi hiện Paywall) và thêm Quick Launcher Lock Screen Widget.
+```

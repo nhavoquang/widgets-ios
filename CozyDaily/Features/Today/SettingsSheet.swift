@@ -119,6 +119,32 @@ struct SettingsSheet: View {
             }
             .pickerStyle(.segmented)
 
+            VStack(alignment: .leading, spacing: 6) {
+                Text(CozyL10n.t("weekStart.title", lang: lang))
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Color.inkTaupe)
+                Picker(CozyL10n.t("weekStart.title", lang: lang), selection: Binding(
+                    get: { model.settings.weekStartDay },
+                    set: { day in
+                        model.updateSettings { $0.weekStartDay = day }
+                        Haptics.tap()
+                    }
+                )) {
+                    ForEach(WeekStartDay.allCases) { Text($0.displayName).tag($0) }
+                }
+                .pickerStyle(.segmented)
+            }
+
+            Toggle(CozyL10n.t("settings.syncReminders", lang: lang), isOn: Binding(
+                get: { model.settings.syncAppleReminders },
+                set: { v in
+                    model.updateSettings { $0.syncAppleReminders = v }
+                    if v { Task { await model.onForeground() } }
+                }
+            ))
+            .font(.system(size: 15, weight: .medium))
+            .tint(.accentSky)
+
             Toggle(CozyL10n.t("settings.haptics", lang: lang), isOn: Binding(
                 get: { model.settings.hapticsEnabled },
                 set: { v in

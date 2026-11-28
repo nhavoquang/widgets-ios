@@ -116,24 +116,29 @@ public enum CozyL10n {
     public static var effective: AppLanguage { current.resolved }
     public static var locale: Locale { effective.locale }
 
-    /// Thứ hai -> Chủ nhật (7 nhãn cột lịch tuần chuẩn cho 15 ngôn ngữ).
-    public static func weekdayShortLabels(for lang: AppLanguage = effective) -> [String] {
+    /// 7 nhãn cột lịch tuần chuẩn cho 15 ngôn ngữ (tùy chọn bắt đầu từ Thứ Hai hoặc Chủ Nhật).
+    public static func weekdayShortLabels(for lang: AppLanguage = effective, startDay: WeekStartDay = .monday) -> [String] {
+        let monFirst: [String]
         switch lang.resolved {
-        case .vi: return ["T2", "T3", "T4", "T5", "T6", "T7", "CN"]
-        case .ja: return ["月", "火", "水", "木", "金", "土", "日"]
-        case .ko: return ["월", "화", "수", "목", "금", "토", "일"]
-        case .zhHans, .zhHant: return ["一", "二", "三", "四", "五", "六", "日"]
-        case .es: return ["L", "M", "X", "J", "V", "S", "D"]
-        case .fr: return ["L", "M", "M", "J", "V", "S", "D"]
-        case .de: return ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
-        case .ptBR: return ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
-        case .th: return ["จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส.", "อา."]
-        case .id: return ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"]
-        case .ru: return ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
-        case .it: return ["L", "M", "M", "G", "V", "S", "D"]
-        case .ar: return ["إث", "ثل", "أر", "خم", "جم", "سب", "أح"]
-        default: return ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        case .vi: monFirst = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"]
+        case .ja: monFirst = ["月", "火", "水", "木", "金", "土", "日"]
+        case .ko: monFirst = ["월", "화", "수", "목", "금", "토", "일"]
+        case .zhHans, .zhHant: monFirst = ["一", "二", "三", "四", "五", "六", "日"]
+        case .es: monFirst = ["L", "M", "X", "J", "V", "S", "D"]
+        case .fr: monFirst = ["L", "M", "M", "J", "V", "S", "D"]
+        case .de: monFirst = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+        case .ptBR: monFirst = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
+        case .th: monFirst = ["จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส.", "อา."]
+        case .id: monFirst = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"]
+        case .ru: monFirst = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+        case .it: monFirst = ["L", "M", "M", "G", "V", "S", "D"]
+        case .ar: monFirst = ["إث", "ثل", "أر", "خم", "جم", "سب", "أح"]
+        default: monFirst = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
         }
+        if startDay == .sunday, let sun = monFirst.last {
+            return [sun] + Array(monFirst.dropLast())
+        }
+        return monFirst
     }
 
     /// Định dạng tiêu đề ngày trên Màn hình khóa chuẩn từng quốc gia.
@@ -534,6 +539,60 @@ public enum CozyL10n {
             .zhHans: "从相册选择背景图", .zhHant: "從相簿選擇背景圖", .es: "Elegir foto de la galería", .fr: "Choisir une photo",
             .de: "Foto aus Mediathek wählen", .ptBR: "Escolher foto da galeria", .th: "เลือกรูปภาพจากคลัง",
             .id: "Pilih Foto dari Galeri", .ru: "Выбрать фото из галереи", .it: "Scegli foto dalla libreria", .ar: "اختر صورة من المكتبة"
+        ],
+        "block.yearDots": [
+            .en: "365 Year Dots", .vi: "Lưới 365 chấm Năm", .ja: "365日ドット進捗", .ko: "365일 도트 그리드",
+            .zhHans: "365天圆点进度", .zhHant: "365天圓點進度", .es: "365 puntos del año", .fr: "Grille 365 jours",
+            .de: "365-Tage-Punkte", .ptBR: "365 pontos do ano", .th: "ตาราง 365 จุด",
+            .id: "365 Titik Tahun", .ru: "365 точек года", .it: "365 punti dell’anno", .ar: "شبكة ٣٦٥ يوماً"
+        ],
+        "block.dailyQuote": [
+            .en: "Daily Quote", .vi: "Câu nói hôm nay", .ja: "今日の名言", .ko: "오늘의 명언",
+            .zhHans: "每日一言", .zhHant: "每日一言", .es: "Frase del día", .fr: "Citation du jour",
+            .de: "Zitat des Tages", .ptBR: "Frase do dia", .th: "คำคมวันนี้",
+            .id: "Kutipan Hari Ini", .ru: "Цитата дня", .it: "Citazione del giorno", .ar: "حكمة اليوم"
+        ],
+        "block.multiCountdown": [
+            .en: "Multi-Countdowns", .vi: "Thanh đếm sự kiện", .ja: "複数カウントダウン", .ko: "멀티 디데이 바",
+            .zhHans: "多事件进度条", .zhHant: "多事件進度條", .es: "Barras de cuenta atrás", .fr: "Comptes à rebours",
+            .de: "Multi-Countdowns", .ptBR: "Múltiplas contagens", .th: "แถบนับถอยหลัง",
+            .id: "Multi Hitung Mundur", .ru: "Шкала событий", .it: "Conti alla rovescia", .ar: "شريط العد التنازلي"
+        ],
+        "weekStart.title": [
+            .en: "Start Week On", .vi: "Bắt đầu tuần", .ja: "週の始まり", .ko: "주 시작 요일",
+            .zhHans: "每周起始日", .zhHant: "每週起始日", .es: "Inicio de semana", .fr: "Début de semaine",
+            .de: "Wochenbeginn", .ptBR: "Início da semana", .th: "เริ่มต้นสัปดาห์",
+            .id: "Awal Minggu", .ru: "Начало недели", .it: "Inizio settimana", .ar: "بداية الأسبوع"
+        ],
+        "weekStart.monday": [
+            .en: "Monday", .vi: "Thứ Hai", .ja: "月曜日", .ko: "월요일",
+            .zhHans: "周一", .zhHant: "週一", .es: "Lunes", .fr: "Lundi",
+            .de: "Montag", .ptBR: "Segunda", .th: "วันจันทร์",
+            .id: "Senin", .ru: "Понедельник", .it: "Lunedì", .ar: "الاثنين"
+        ],
+        "weekStart.sunday": [
+            .en: "Sunday", .vi: "Chủ Nhật", .ja: "日曜日", .ko: "일요일",
+            .zhHans: "周日", .zhHant: "週日", .es: "Domingo", .fr: "Dimanche",
+            .de: "Sonntag", .ptBR: "Domingo", .th: "วันอาทิตย์",
+            .id: "Minggu", .ru: "Воскресенье", .it: "Domenica", .ar: "الأحد"
+        ],
+        "bg.photoDim": [
+            .en: "Photo Dimming", .vi: "Độ tối ảnh nền", .ja: "背景の暗さ", .ko: "배경 어둡기",
+            .zhHans: "背景暗度", .zhHant: "背景暗度", .es: "Oscurecer foto", .fr: "Assombrir",
+            .de: "Abdunkeln", .ptBR: "Escurecer foto", .th: "ความมืดพื้นหลัง",
+            .id: "Redup Foto", .ru: "Затемнение фото", .it: "Oscura foto", .ar: "تعتيم الصورة"
+        ],
+        "bg.photoBlur": [
+            .en: "Photo Blur", .vi: "Độ mờ ảnh nền", .ja: "背景ぼかし", .ko: "배경 흐림",
+            .zhHans: "背景模糊", .zhHant: "背景模糊", .es: "Desenfoque", .fr: "Flou",
+            .de: "Unschärfe", .ptBR: "Desfoque", .th: "ความเบลอพื้นหลัง",
+            .id: "Blur Foto", .ru: "Размытие фото", .it: "Sfocatura", .ar: "ضبابية الصورة"
+        ],
+        "settings.syncReminders": [
+            .en: "Sync Apple Reminders", .vi: "Đồng bộ Lời nhắc (Reminders)", .ja: "Appleリマインダー同期", .ko: "미리 알림 동기화",
+            .zhHans: "同步苹果提醒事项", .zhHant: "同步提醒事項", .es: "Sincronizar Recordatorios", .fr: "Synchroniser Rappels",
+            .de: "Erinnerungen synchr.", .ptBR: "Sincronizar Lembretes", .th: "ซิงค์เตือนความจำ",
+            .id: "Sinkron Pengingat", .ru: "Синхр. Напоминания", .it: "Sincronizza Promemoria", .ar: "مزامنة التذكيرات"
         ]
     ]
 }

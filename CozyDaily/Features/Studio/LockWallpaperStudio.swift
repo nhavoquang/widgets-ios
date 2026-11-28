@@ -12,6 +12,9 @@ enum LockBlockKind: String, CaseIterable, Identifiable, Codable, Transferable {
     case todaySchedule
     case weather
     case vocab
+    case dailyQuote
+    case yearDots
+    case multiCountdown
     case partner
     case monthGrid
     case eventCountdown
@@ -37,6 +40,9 @@ enum LockBlockKind: String, CaseIterable, Identifiable, Codable, Transferable {
         case .todaySchedule: return "checklist"
         case .weather: return "cloud.sun.fill"
         case .vocab: return "character.book.closed.fill"
+        case .dailyQuote: return "quote.opening"
+        case .yearDots: return "circle.grid.3x3.fill"
+        case .multiCountdown: return "chart.bar.xaxis"
         case .partner: return "heart.fill"
         case .monthGrid: return "calendar"
         case .eventCountdown: return "hourglass"
@@ -51,16 +57,16 @@ enum LockBlockKind: String, CaseIterable, Identifiable, Codable, Transferable {
     var accent: Color {
         switch self {
         case .weekStrip, .todaySchedule, .weather: return .accentSky
-        case .vocab, .habitStreak, .batteryCard: return .accentSage
-        case .partner, .eventCountdown: return .accentPeach
-        case .monthGrid, .yearProgress, .lunarCard, .stickyNote: return .accentHoney
+        case .vocab, .habitStreak, .batteryCard, .dailyQuote: return .accentSage
+        case .partner, .eventCountdown, .multiCountdown: return .accentPeach
+        case .monthGrid, .yearProgress, .yearDots, .lunarCard, .stickyNote: return .accentHoney
         }
     }
 
     /// Độ rộng mặc định trên lưới 12 đơn vị: 12 = 1 cột, 6 = 1/2 hàng (2 cột), 4 = 1/3 hàng (3 cột), 3 = 1/4 hàng (4 cột).
     var defaultSpanTwelfths: Int {
         switch self {
-        case .weekStrip, .todaySchedule, .monthGrid:
+        case .weekStrip, .todaySchedule, .monthGrid, .yearDots, .multiCountdown, .dailyQuote:
             return 12
         case .weather, .vocab, .partner, .eventCountdown, .yearProgress, .habitStreak, .stickyNote:
             return 6
@@ -187,7 +193,9 @@ struct LockLayoutConfig: Equatable, Codable {
     var cardOpacity: CGFloat = 1.0
     var fontScale: CGFloat = 1.0
     var verticalOffset: CGFloat = 0
-    var stickyNoteText: String = "Tập trung mục tiêu quan trọng nhất hôm nay!"
+    var photoDim: CGFloat = 0.30
+    var photoBlur: CGFloat = 0
+    var stickyNoteText: String = "Focus on what matters today ✨"
     /// Đánh dấu user đã tự chỉnh danh sách/cột để khi chọn mẫu mới không bị mất bố cục đã xếp.
     var userEditedBlocks: Bool = false
     /// Đánh dấu user đã cài đặt Shortcut tự động (chỉ hỏi cài 1 lần duy nhất).
@@ -196,7 +204,7 @@ struct LockLayoutConfig: Equatable, Codable {
     private static let storageKey = "cozy.lockLayoutConfig.v3"
 
     enum CodingKeys: String, CodingKey {
-        case items, blocks, bg, cardStyle, cornerRadius, gridSpacing, cardOpacity, fontScale, verticalOffset, stickyNoteText, userEditedBlocks, shortcutInstalled
+        case items, blocks, bg, cardStyle, cornerRadius, gridSpacing, cardOpacity, fontScale, verticalOffset, photoDim, photoBlur, stickyNoteText, userEditedBlocks, shortcutInstalled
     }
 
     init(
@@ -213,7 +221,9 @@ struct LockLayoutConfig: Equatable, Codable {
         cardOpacity: CGFloat = 1.0,
         fontScale: CGFloat = 1.0,
         verticalOffset: CGFloat = 0,
-        stickyNoteText: String = "Tập trung mục tiêu quan trọng nhất hôm nay!",
+        photoDim: CGFloat = 0.30,
+        photoBlur: CGFloat = 0,
+        stickyNoteText: String = "Focus on what matters today ✨",
         userEditedBlocks: Bool = false,
         shortcutInstalled: Bool = false
     ) {
@@ -225,6 +235,8 @@ struct LockLayoutConfig: Equatable, Codable {
         self.cardOpacity = cardOpacity
         self.fontScale = fontScale
         self.verticalOffset = verticalOffset
+        self.photoDim = photoDim
+        self.photoBlur = photoBlur
         self.stickyNoteText = stickyNoteText
         self.userEditedBlocks = userEditedBlocks
         self.shortcutInstalled = shortcutInstalled
@@ -251,7 +263,9 @@ struct LockLayoutConfig: Equatable, Codable {
         cardOpacity = try c.decodeIfPresent(CGFloat.self, forKey: .cardOpacity) ?? 1.0
         fontScale = try c.decodeIfPresent(CGFloat.self, forKey: .fontScale) ?? 1.0
         verticalOffset = try c.decodeIfPresent(CGFloat.self, forKey: .verticalOffset) ?? 0
-        stickyNoteText = try c.decodeIfPresent(String.self, forKey: .stickyNoteText) ?? "Tập trung mục tiêu quan trọng nhất hôm nay!"
+        photoDim = try c.decodeIfPresent(CGFloat.self, forKey: .photoDim) ?? 0.30
+        photoBlur = try c.decodeIfPresent(CGFloat.self, forKey: .photoBlur) ?? 0
+        stickyNoteText = try c.decodeIfPresent(String.self, forKey: .stickyNoteText) ?? "Focus on what matters today ✨"
         userEditedBlocks = try c.decodeIfPresent(Bool.self, forKey: .userEditedBlocks) ?? false
         shortcutInstalled = try c.decodeIfPresent(Bool.self, forKey: .shortcutInstalled) ?? false
     }
@@ -266,6 +280,8 @@ struct LockLayoutConfig: Equatable, Codable {
         try c.encode(cardOpacity, forKey: .cardOpacity)
         try c.encode(fontScale, forKey: .fontScale)
         try c.encode(verticalOffset, forKey: .verticalOffset)
+        try c.encode(photoDim, forKey: .photoDim)
+        try c.encode(photoBlur, forKey: .photoBlur)
         try c.encode(stickyNoteText, forKey: .stickyNoteText)
         try c.encode(userEditedBlocks, forKey: .userEditedBlocks)
         try c.encode(shortcutInstalled, forKey: .shortcutInstalled)
@@ -337,6 +353,30 @@ struct LockTemplatePreset: Identifiable {
     let config: LockLayoutConfig
 
     static let all: [LockTemplatePreset] = [
+        LockTemplatePreset(
+            id: "viral-365-dots", name: "365 Year Dots", badge: "Viral TikTok", accent: .accentHoney,
+            config: LockLayoutConfig(
+                items: [
+                    .init(kind: .yearDots, spanTwelfths: 12),
+                    .init(kind: .weather, spanTwelfths: 6),
+                    .init(kind: .dailyQuote, spanTwelfths: 6),
+                    .init(kind: .todaySchedule, spanTwelfths: 12),
+                ],
+                bg: .pureDark, cardStyle: .frostedGlass, cornerRadius: 20
+            )
+        ),
+        LockTemplatePreset(
+            id: "multi-progress", name: "Multi-Countdowns", badge: "Pretty Progress", accent: .accentPeach,
+            config: LockLayoutConfig(
+                items: [
+                    .init(kind: .weekStrip, spanTwelfths: 12),
+                    .init(kind: .multiCountdown, spanTwelfths: 12),
+                    .init(kind: .weather, spanTwelfths: 6),
+                    .init(kind: .dailyQuote, spanTwelfths: 6),
+                ],
+                bg: .obsidianNeon, cardStyle: .glowingBorder, cornerRadius: 18
+            )
+        ),
         LockTemplatePreset(
             id: "bento-2col", name: "Bento 2 Cột", badge: "Widgy Style", accent: .accentSky,
             config: LockLayoutConfig(
@@ -663,12 +703,14 @@ struct LockWallpaperStudio: View {
             let maxH = max(geo.size.height, 190)
             let w = max(min(geo.size.width * 0.58, maxH * (9.0 / 19.5)), 145)
             let h = w * (19.5 / 9.0)
-            let upcoming = model.upcomingEvents(limit: 1).first
+            let upcomingList = model.upcomingEvents(limit: 3)
+            let upcomingPairs = upcomingList.map { ($0, model.status(of: $0)) }
             LockWallpaperRenderView(
                 canvasSize: CGSize(width: w, height: h),
                 config: liveDraggedConfig,
                 bgImage: bgImage,
                 now: model.now,
+                weekStartDay: model.settings.weekStartDay,
                 lunar: model.lunarToday,
                 schedule: model.todaySchedule,
                 weather: model.snapshot.weather,
@@ -676,8 +718,9 @@ struct LockWallpaperStudio: View {
                 streak: model.streak,
                 learnedLog: model.snapshot.learnedLog,
                 partner: model.couple?.partner(of: DemoData.meID),
-                nextEvent: upcoming,
-                nextEventStatus: upcoming.map { model.status(of: $0) },
+                nextEvent: upcomingPairs.first?.0,
+                nextEventStatus: upcomingPairs.first?.1,
+                upcomingEvents: upcomingPairs,
                 batteryPercent: currentBatteryPercent(),
                 showMockClock: true
             )
@@ -1135,6 +1178,23 @@ struct LockWallpaperStudio: View {
                     .padding(.vertical, 11)
                     .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.12)))
             }
+
+            if config.bg == .photo {
+                sliderCard(
+                    title: CozyL10n.t("bg.photoDim"),
+                    valueText: "\(Int((config.photoDim * 100).rounded()))%",
+                    value: $config.photoDim,
+                    range: 0.0...0.75,
+                    step: 0.05
+                )
+                sliderCard(
+                    title: CozyL10n.t("bg.photoBlur"),
+                    valueText: "\(Int(config.photoBlur)) pt",
+                    value: $config.photoBlur,
+                    range: 0...22,
+                    step: 2
+                )
+            }
         }
     }
 
@@ -1288,12 +1348,14 @@ struct LockWallpaperStudio: View {
     private func exportWallpaper() {
         config.save()
         let renderSize = CGSize(width: 393, height: 852)
-        let upcoming = model.upcomingEvents(limit: 1).first
+        let upcomingList = model.upcomingEvents(limit: 3)
+        let upcomingPairs = upcomingList.map { ($0, model.status(of: $0)) }
         let view = LockWallpaperRenderView(
             canvasSize: renderSize,
             config: config,
             bgImage: bgImage,
             now: model.now,
+            weekStartDay: model.settings.weekStartDay,
             lunar: model.lunarToday,
             schedule: model.todaySchedule,
             weather: model.snapshot.weather,
@@ -1301,8 +1363,9 @@ struct LockWallpaperStudio: View {
             streak: model.streak,
             learnedLog: model.snapshot.learnedLog,
             partner: model.couple?.partner(of: DemoData.meID),
-            nextEvent: upcoming,
-            nextEventStatus: upcoming.map { model.status(of: $0) },
+            nextEvent: upcomingPairs.first?.0,
+            nextEventStatus: upcomingPairs.first?.1,
+            upcomingEvents: upcomingPairs,
             batteryPercent: currentBatteryPercent(),
             showMockClock: false
         )
@@ -1321,6 +1384,7 @@ struct LockWallpaperRenderView: View {
     var config: LockLayoutConfig
     var bgImage: UIImage?
     var now: Date
+    var weekStartDay: WeekStartDay = .monday
     var lunar: LunarDate
     var schedule: [TodayScheduleItem]
     var weather: WeatherSnapshot?
@@ -1330,6 +1394,7 @@ struct LockWallpaperRenderView: View {
     var partner: MemberStatus?
     var nextEvent: CozyEvent? = nil
     var nextEventStatus: EventStatus? = nil
+    var upcomingEvents: [(CozyEvent, EventStatus)] = []
     var batteryPercent: Int = 85
     var showMockClock: Bool
 
@@ -1414,8 +1479,9 @@ struct LockWallpaperRenderView: View {
                 .resizable()
                 .scaledToFill()
                 .frame(width: size.width, height: size.height)
+                .blur(radius: config.photoBlur * (size.width / 393.0))
                 .clipped()
-                .overlay(Color.black.opacity(0.28))
+                .overlay(Color.black.opacity(config.photoDim))
         } else {
             LinearGradient(colors: config.bg.previewColors, startPoint: .topLeading, endPoint: .bottomTrailing)
                 .frame(width: size.width, height: size.height)
@@ -1437,6 +1503,9 @@ struct LockWallpaperRenderView: View {
             case .todaySchedule: todayScheduleBlock(compact: half, scale: scale, fScale: fScale)
             case .weather: weatherBlock(span: item.spanTwelfths, scale: scale, fScale: fScale)
             case .vocab: vocabBlock(span: item.spanTwelfths, scale: scale, fScale: fScale)
+            case .dailyQuote: dailyQuoteBlock(span: item.spanTwelfths, scale: scale, fScale: fScale)
+            case .yearDots: yearDotsBlock(width: width - pad * 2, scale: scale, fScale: fScale)
+            case .multiCountdown: multiCountdownBlock(scale: scale, fScale: fScale)
             case .partner: partnerBlock(span: item.spanTwelfths, scale: scale, fScale: fScale)
             case .monthGrid: monthGridBlock(scale: scale, fScale: fScale)
             case .eventCountdown: eventCountdownBlock(span: item.spanTwelfths, scale: scale, fScale: fScale)
@@ -1471,17 +1540,23 @@ struct LockWallpaperRenderView: View {
         }
     }
 
-    // 1. Lịch tuần
+    // 1. Lịch tuần (tự động đổi Thứ Hai / Chủ Nhật theo cài đặt người dùng)
     private func weekStripBlock(compact: Bool, scale: CGFloat, fScale: CGFloat) -> some View {
         let cal = Calendar.cozy
-        let weekday = cal.component(.weekday, from: now)
-        let offsetToMon = (weekday == 1) ? -6 : (2 - weekday)
-        let monday = cal.date(byAdding: .day, value: offsetToMon, to: cal.startOfDay(for: now))!
-        let labels = CozyL10n.weekdayShortLabels()
+        let weekday = cal.component(.weekday, from: now) // 1 = Sun ... 7 = Sat
+        let offsetToStart: Int = {
+            if weekStartDay == .sunday {
+                return 1 - weekday
+            } else {
+                return (weekday == 1) ? -6 : (2 - weekday)
+            }
+        }()
+        let startDate = cal.date(byAdding: .day, value: offsetToStart, to: cal.startOfDay(for: now))!
+        let labels = CozyL10n.weekdayShortLabels(startDay: weekStartDay)
 
         return HStack(spacing: (compact ? 2 : 4) * scale) {
             ForEach(0..<7, id: \.self) { i in
-                let d = cal.date(byAdding: .day, value: i, to: monday)!
+                let d = cal.date(byAdding: .day, value: i, to: startDate)!
                 let isToday = cal.isDate(d, inSameDayAs: now)
                 let dayNum = cal.component(.day, from: d)
                 VStack(spacing: 2 * scale) {
@@ -1626,15 +1701,126 @@ struct LockWallpaperRenderView: View {
                             .foregroundStyle(Color.accentHoney)
                     }
                 }
-                Text(w.meaning)
+                Text(w.localizedMeaning())
                     .font(.system(size: (span <= 4 ? 10.5 : 12.5) * fScale, weight: .medium))
                     .foregroundStyle(primaryText.opacity(0.85))
-                    .lineLimit(span <= 6 ? 2 : 2)
+                    .lineLimit(2)
             }
         } else {
-            Text("Từ vựng")
+            Text(CozyL10n.t("block.vocab"))
                 .font(.system(size: 12 * fScale, weight: .bold))
                 .foregroundStyle(secondaryText)
+        }
+    }
+
+    // 4B. Daily Quote 15 ngôn ngữ (Stoic & Focus Affirmation cho khách toàn cầu)
+    private func dailyQuoteBlock(span: Int, scale: CGFloat, fScale: CGFloat) -> some View {
+        let q = DailyQuotesCatalog.quoteOfTheDay(on: now)
+        return VStack(alignment: .leading, spacing: 3.5 * scale) {
+            HStack(spacing: 4 * scale) {
+                Image(systemName: "quote.opening")
+                    .font(.system(size: 10 * fScale, weight: .bold))
+                    .foregroundStyle(Color.accentSage)
+                Text(q.author)
+                    .font(.system(size: 10.5 * fScale, weight: .bold))
+                    .foregroundStyle(Color.accentSage)
+                    .lineLimit(1)
+            }
+            Text(q.text)
+                .font(.system(size: (span <= 6 ? 11.5 : 13) * fScale, weight: .medium, design: .serif))
+                .foregroundStyle(primaryText.opacity(0.92))
+                .lineLimit(span == 12 ? 2 : 3)
+        }
+    }
+
+    // 4C. Lưới 365 chấm Year Progress (Viral TikTok — 53 cột × 7 hàng tĩnh 100%, không dùng LazyVGrid!)
+    private func yearDotsBlock(width: CGFloat, scale: CGFloat, fScale: CGFloat) -> some View {
+        let cal = Calendar.cozy
+        let year = cal.component(.year, from: now)
+        let dayOfYear = cal.ordinality(of: .day, in: .year, for: now) ?? 1
+        let totalDays = cal.range(of: .day, in: .year, for: now)?.count ?? 365
+        let pct = Int((Double(dayOfYear) / Double(totalDays) * 100).rounded())
+        let cols = 37
+        let rows = 10 // 37 * 10 = 370 ô (vừa khít 365/366 ngày, chấm to tròn sắc nét trên iPhone!)
+        let dotGap = 2.4 * scale
+        let dotSize = max((width - CGFloat(cols - 1) * dotGap) / CGFloat(cols), 2.5 * scale)
+
+        return VStack(alignment: .leading, spacing: 6 * scale) {
+            HStack {
+                Text("\(year) · \(dayOfYear)/\(totalDays)")
+                    .font(.system(size: 11.5 * fScale, weight: .bold, design: .monospaced))
+                    .foregroundStyle(primaryText)
+                Spacer(minLength: 4)
+                Text("\(pct)%")
+                    .font(.system(size: 12 * fScale, weight: .heavy, design: .monospaced))
+                    .foregroundStyle(Color.accentHoney)
+            }
+            VStack(alignment: .leading, spacing: dotGap) {
+                ForEach(0..<rows, id: \.self) { r in
+                    HStack(spacing: dotGap) {
+                        ForEach(0..<cols, id: \.self) { c in
+                            let dayIdx = r * cols + c + 1
+                            if dayIdx <= totalDays {
+                                let isToday = (dayIdx == dayOfYear)
+                                let isPast = (dayIdx < dayOfYear)
+                                Circle()
+                                    .fill(isToday ? Color.accentHoney : (isPast ? primaryText.opacity(0.88) : primaryText.opacity(0.16)))
+                                    .frame(width: dotSize, height: dotSize)
+                            } else {
+                                Color.clear.frame(width: dotSize, height: dotSize)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 4D. Multi-Countdowns (Thanh tiến độ nhiều sự kiện kiểu Pretty Progress / Locka)
+    private func multiCountdownBlock(scale: CGFloat, fScale: CGFloat) -> some View {
+        let list = upcomingEvents.prefix(3)
+        return VStack(alignment: .leading, spacing: 6 * scale) {
+            HStack(spacing: 4 * scale) {
+                Image(systemName: "hourglass")
+                    .font(.system(size: 11 * fScale, weight: .bold))
+                    .foregroundStyle(Color.accentPeach)
+                Text(CozyL10n.t("block.multiCountdown"))
+                    .font(.system(size: 12.5 * fScale, weight: .bold))
+                    .foregroundStyle(Color.accentPeach)
+            }
+            if list.isEmpty {
+                Text(CozyL10n.t("schedule.noEvents"))
+                    .font(.system(size: 12 * fScale))
+                    .foregroundStyle(secondaryText)
+            } else {
+                ForEach(Array(list.enumerated()), id: \.offset) { _, pair in
+                    let ev = pair.0
+                    let st = pair.1
+                    let progress = max(0.08, min(1.0, 1.0 - Double(min(st.days, 60)) / 60.0))
+                    VStack(alignment: .leading, spacing: 3 * scale) {
+                        HStack {
+                            Text("\(ev.emoji) \(ev.title)")
+                                .font(.system(size: 12 * fScale, weight: .semibold))
+                                .foregroundStyle(primaryText)
+                                .lineLimit(1)
+                            Spacer(minLength: 4)
+                            Text(st.sentence)
+                                .font(.system(size: 11 * fScale, weight: .bold, design: .rounded))
+                                .foregroundStyle(ev.accent.color)
+                        }
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(primaryText.opacity(0.14))
+                                .frame(height: 5 * scale)
+                            Capsule()
+                                .fill(ev.accent.color)
+                                .frame(maxWidth: .infinity)
+                                .scaleEffect(x: progress, y: 1, anchor: .leading)
+                                .frame(height: 5 * scale)
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -1690,18 +1876,24 @@ struct LockWallpaperRenderView: View {
         }
     }
 
-    // 6. Lịch tháng (VStack/HStack tĩnh 100%)
+    // 6. Lịch tháng (VStack/HStack tĩnh 100%, tôn trọng Thứ Hai / Chủ Nhật)
     private func monthGridBlock(scale: CGFloat, fScale: CGFloat) -> some View {
         let cal = Calendar.cozy
         let comps = cal.dateComponents([.year, .month], from: now)
         let first = cal.date(from: comps)!
         let totalDays = cal.range(of: .day, in: .month, for: first)!.count
-        let firstWD = cal.component(.weekday, from: first)
-        let pad = (firstWD == 1) ? 6 : (firstWD - 2)
+        let firstWD = cal.component(.weekday, from: first) // 1 = Sun ... 7 = Sat
+        let pad: Int = {
+            if weekStartDay == .sunday {
+                return firstWD - 1
+            } else {
+                return (firstWD == 1) ? 6 : (firstWD - 2)
+            }
+        }()
         let todayDay = cal.component(.day, from: now)
         let totalCells = pad + totalDays
         let rowCount = (totalCells + 6) / 7
-        let labels = CozyL10n.weekdayShortLabels()
+        let labels = CozyL10n.weekdayShortLabels(startDay: weekStartDay)
 
         return VStack(spacing: 3.5 * scale) {
             HStack(spacing: 2 * scale) {
@@ -1904,10 +2096,15 @@ struct GenerateLockWallpaperIntent: AppIntent {
         try? await CloudSync.shared.sync()
         let weatherService = CozyWeatherService(repository: repo)
         await weatherService.refreshIfNeeded()
-        if repo.snapshot(reload: true).settings.syncAppleCalendar {
-            let calService = CalendarImportService()
+        let startSnap = repo.snapshot(reload: true)
+        let calService = CalendarImportService()
+        if startSnap.settings.syncAppleCalendar {
             let imported = await calService.upcomingEvents(days: 14)
             for e in imported { repo.upsertEvent(e) }
+        }
+        if startSnap.settings.syncAppleReminders {
+            let rems = await calService.todayReminders(now: Date())
+            for r in rems { repo.upsertTask(r) }
         }
         CozyShared.didChange()
 
@@ -1918,8 +2115,8 @@ struct GenerateLockWallpaperIntent: AppIntent {
         let now = Date()
         let snap = repo.snapshot(reload: true)
         CozyL10n.current = snap.settings.language
-        let upcoming = repo.upcomingEvents(now: now, limit: 1).first
-        let status = upcoming.map { EventCounter(calendar: repo.calendar).status(of: $0, now: now) }
+        let counter = EventCounter(calendar: repo.calendar)
+        let upcomingPairs = repo.upcomingEvents(now: now, limit: 3).map { ($0, counter.status(of: $0, now: now)) }
         let renderSize = CGSize(width: 393, height: 852)
 
         let view = LockWallpaperRenderView(
@@ -1927,6 +2124,7 @@ struct GenerateLockWallpaperIntent: AppIntent {
             config: cfg,
             bgImage: LockLayoutConfig.loadCustomPhoto(),
             now: now,
+            weekStartDay: snap.settings.weekStartDay,
             lunar: VietnameseLunarCalendar.lunarDate(from: now, calendar: repo.calendar),
             schedule: repo.todaySchedule(now: now),
             weather: snap.weather,
@@ -1934,8 +2132,9 @@ struct GenerateLockWallpaperIntent: AppIntent {
             streak: repo.vocabStreak(now: now),
             learnedLog: snap.learnedLog,
             partner: snap.spaces.preferred(.couple)?.partner(of: DemoData.meID),
-            nextEvent: upcoming,
-            nextEventStatus: status,
+            nextEvent: upcomingPairs.first?.0,
+            nextEventStatus: upcomingPairs.first?.1,
+            upcomingEvents: upcomingPairs,
             batteryPercent: batteryPct,
             showMockClock: false
         )

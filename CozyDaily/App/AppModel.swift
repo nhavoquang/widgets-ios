@@ -56,6 +56,10 @@ final class AppModel {
             let imported = await calendarImport.upcomingEvents(days: 14)
             for e in imported { repository.upsertEvent(e) }
         }
+        if snapshot.settings.syncAppleReminders {
+            let rems = await calendarImport.todayReminders(now: now)
+            for r in rems { repository.upsertTask(r) }
+        }
         await weather.refreshIfNeeded()
         await syncCloud()
         commit()

@@ -81,6 +81,7 @@ targets:
         CozyCloudEnabled: $(COZY_CLOUD_ENABLED)
         NSLocationWhenInUseUsageDescription: Widgets uses your approximate location (~1 km) to display live local weather on your Lock Screen.
         NSCalendarsFullAccessUsageDescription: Widgets reads your Apple Calendar events to show today's schedule on your Lock Screen.
+        NSRemindersFullAccessUsageDescription: Widgets reads your Apple Reminders to show today's tasks directly on your Lock Screen.
         NSPhotoLibraryAddUsageDescription: Widgets saves generated Lock Screen wallpapers to your Photo Library.
     settings:
       base:
