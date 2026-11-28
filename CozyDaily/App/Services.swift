@@ -95,7 +95,9 @@ final class CozyWeatherService: NSObject, CLLocationManagerDelegate {
         }
 
         let cached = snap.weather
-        let isDemoWeather = cached?.regionKey == "demo"
+        let isDemoWeather = cached.map { w in
+            w.regionKey == "demo" || (w.placeName == "TP.HCM" && Int(w.temperatureC) == 27 && Int(w.highC) == 31 && Int(w.lowC) == 24)
+        } ?? true
         let decision = policy.decide(cached: cached, latitude: lat, longitude: lon, now: Date(), force: force)
         if !isDemoWeather && !force, case .useCache = decision {
             return
@@ -127,6 +129,7 @@ final class CozyWeatherService: NSObject, CLLocationManagerDelegate {
                 fetchedAt: Date()
             )
             repository.updateWeather(snap)
+            CozyShared.didChange()
             lastError = nil
             return
         } catch {
@@ -137,6 +140,7 @@ final class CozyWeatherService: NSObject, CLLocationManagerDelegate {
         do {
             let snap = try await fetchOpenMeteo(latitude: latitude, longitude: longitude, placeName: placeName, regionKey: region)
             repository.updateWeather(snap)
+            CozyShared.didChange()
             lastError = nil
         } catch {
             lastError = "Chưa lấy được thời tiết trực tuyến: \(error.localizedDescription)"

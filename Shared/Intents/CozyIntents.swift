@@ -46,6 +46,26 @@ struct NextVocabIntent: AppIntent {
     }
 }
 
+struct ToggleTaskIntent: AppIntent {
+    static let title: LocalizedStringResource = "Đánh dấu hoàn thành việc"
+    static let description = IntentDescription("Tích xong hoặc bỏ tích một công việc hôm nay ngay trên Widget.")
+    static let isDiscoverable: Bool = false
+
+    @Parameter(title: "ID công việc")
+    var taskID: String
+
+    init() { self.taskID = "" }
+    init(taskID: UUID) { self.taskID = taskID.uuidString }
+
+    func perform() async throws -> some IntentResult {
+        if let uuid = UUID(uuidString: taskID) {
+            CozyShared.repository.toggleTask(id: uuid)
+            await CozyShared.finishIntent()
+        }
+        return .result()
+    }
+}
+
 // MARK: - Mood (Shortcuts, Focus, Apple Watch automation)
 
 enum MoodOption: String, AppEnum {

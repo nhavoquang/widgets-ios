@@ -19,6 +19,7 @@ final class AppModel {
     let calendarImport = CalendarImportService()
     private let syncTrigger = CloudSyncTrigger()
     private(set) var cloudError: String?
+    var incomingPartnerToast: String?
 
     init(repository: CozyRepository = CozyShared.repository) {
         self.repository = repository
@@ -48,6 +49,10 @@ final class AppModel {
         UIDevice.current.isBatteryMonitoringEnabled = true
         let level = UIDevice.current.batteryLevel
         repository.updateMyProfile(deviceBattery: level >= 0 ? Double(level) : nil)
+        if snapshot.settings.syncAppleCalendar {
+            let imported = await calendarImport.upcomingEvents(days: 14)
+            for e in imported { repository.upsertEvent(e) }
+        }
         await weather.refreshIfNeeded()
         await syncCloud()
         commit()
@@ -92,6 +97,8 @@ final class AppModel {
     // MARK: - Derived
 
     var settings: UserSettings { snapshot.settings }
+    var hasDemoData: Bool { snapshot.hasDemoData }
+    var todaySchedule: [TodayScheduleItem] { repository.todaySchedule(now: now) }
     var latestCheckInToday: CheckIn? { repository.latestCheckIn(on: now) }
     var streak: Int { CozyRepository.streak(log: snapshot.learnedLog, now: now, calendar: repository.calendar) }
     var dueCount: Int { SpacedRepetition(calendar: repository.calendar).dueWords(states: snapshot.reviewStates, now: now).count }
@@ -170,6 +177,51 @@ final class AppModel {
         let imported = await calendarImport.upcomingEvents(days: 30)
         for e in imported { repository.upsertEvent(e) }
         repository.updateSettings { $0.syncAppleCalendar = true }
+        commit()
+    }
+
+    // MARK: - Daily Tasks
+
+    func addTask(title: String, timeText: String? = nil) {
+        guard repository.addTask(title: title, timeText: timeText, day: now) != nil else { return }
+        Haptics.tap()
+        commit()
+    }
+
+    func toggleTask(_ id: UUID) {
+        repository.toggleTask(id: id)
+        Haptics.tap()
+        commit()
+    }
+
+    func deleteTask(_ id: UUID) {
+        repository.deleteTask(id: id)
+        commit()
+    }
+
+    // MARK: - Partner URL Link (Kết nối thật ngay cả khi chưa có iCloud trả phí)
+
+    var myStatusShareURL: URL? {
+        let checkIn = latestCheckInToday
+        let weatherLine = settings.shareWeatherWithSpaces ? snapshot.weather.map(WeatherSuggestion.shareLine(for:)) : nil
+        let level = UIDevice.current.batteryLevel
+        let battery = (settings.shareDeviceBattery && level >= 0) ? Double(level) : nil
+        return PartnerStatusLink.makeURL(
+            name: settings.displayName,
+            species: settings.species,
+            mood: checkIn?.mood,
+            note: checkIn?.note ?? "",
+            weatherLine: weatherLine,
+            deviceBattery: battery,
+            at: Date()
+        )
+    }
+
+    func handleIncomingURL(_ url: URL) {
+        guard let update = PartnerStatusLink.parse(url) else { return }
+        repository.applyIncomingPartner(update)
+        Haptics.success()
+        incomingPartnerToast = "Đã cập nhật cảm xúc của \(update.name) ✨"
         commit()
     }
 

@@ -70,6 +70,7 @@ private struct HomeWidget: View {
     @ViewBuilder
     private var content: some View {
         switch data.config.content {
+        case .schedule: ScheduleHome(data: data, family: family)
         case .vocab: VocabHome(data: data, family: family)
         case .moodFood: MoodFoodHome(data: data, family: family)
         case .couple: CoupleHome(data: data, family: family)
@@ -144,6 +145,82 @@ private struct WidgetSoftSurface<Content: View>: View {
                             .fill(tint.opacity(0.10))
                     )
             )
+    }
+}
+
+// MARK: Schedule & Tasks Today (Home Screen)
+
+private struct ScheduleHome: View {
+    var data: CozyWidgetData
+    var family: WidgetFamily
+
+    private var doneCount: Int { data.todaySchedule.filter { $0.isTask && $0.isDone }.count }
+    private var totalTasks: Int { data.todaySchedule.filter(\.isTask).count }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            WidgetHeader(
+                title: "Hôm nay",
+                symbol: "checklist",
+                data: data,
+                trailing: totalTasks > 0 ? "\(doneCount)/\(totalTasks) việc" : "\(data.lunar.shortText) ÂL"
+            )
+            if data.todaySchedule.isEmpty {
+                Spacer(minLength: 0)
+                if let e = data.event, let s = data.eventStatus {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Sắp tới").font(.system(size: 10, weight: .bold)).foregroundStyle(data.theme.secondaryInk)
+                        Text("\(e.emoji) \(e.title)").font(.system(size: 14, weight: .bold, design: .rounded)).lineLimit(1)
+                        Text(s.sentence).font(.system(size: 12, weight: .semibold, design: .rounded)).foregroundStyle(data.config.accent.color)
+                    }
+                } else {
+                    Text("Hôm nay thảnh thơi ✨\nMở app để thêm lịch & việc.")
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .foregroundStyle(data.theme.secondaryInk)
+                }
+                Spacer(minLength: 0)
+            } else {
+                let limit = family == .systemLarge ? 7 : (family == .systemMedium ? 3 : 3)
+                VStack(alignment: .leading, spacing: 5) {
+                    ForEach(data.todaySchedule.prefix(limit)) { item in
+                        if item.isTask, let taskID = item.taskID {
+                            Button(intent: ToggleTaskIntent(taskID: taskID)) {
+                                scheduleRow(item)
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            scheduleRow(item)
+                        }
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    private func scheduleRow(_ item: TodayScheduleItem) -> some View {
+        HStack(spacing: 7) {
+            if item.isTask {
+                Image(systemName: item.isDone ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(item.isDone ? Color.accentSage : item.accent.color)
+            } else {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(item.accent.color)
+                    .frame(width: 3, height: 14)
+            }
+            if let time = item.timeText {
+                Text(time)
+                    .font(.system(size: 10.5, weight: .bold, design: .monospaced))
+                    .foregroundStyle(data.theme.secondaryInk)
+            }
+            Text(item.title)
+                .font(.system(size: 12.5, weight: .semibold, design: .rounded))
+                .strikethrough(item.isDone)
+                .opacity(item.isDone ? 0.5 : 1)
+                .lineLimit(1)
+            Spacer(minLength: 0)
+        }
     }
 }
 
@@ -759,24 +836,35 @@ private struct EmptyState: View {
     }
 }
 
-// MARK: - Lock Screen (100% Real Data, siêu sắc nét & bắt mắt)
+// MARK: - Lock Screen (4 Widget cốt lõi: Lịch & Việc, Từ vựng, Thời tiết thật, Cảm xúc người kết nối)
 
 private struct InlineAccessory: View {
     var data: CozyWidgetData
 
     var body: some View {
-        // Inline chỉ nhận 1 ảnh + 1 dòng chữ, hệ thống tự tô màu.
         switch data.config.content {
+        case .schedule:
+            if let next = data.todaySchedule.first(where: { !$0.isDone }) {
+                let prefix = next.timeText.map { "\($0) " } ?? ""
+                Label("\(prefix)\(next.title)", systemImage: next.isTask ? "checklist" : "calendar")
+            } else if let e = data.event, let s = data.eventStatus {
+                Label("\(e.title): \(s.sentence)", systemImage: "calendar")
+            } else {
+                Label("Hôm nay thảnh thơi", systemImage: "checkmark.circle")
+            }
         case .vocab:
-            Label(
-                data.word.map { "\($0.word) · 🔥\(data.streak)" } ?? "CozyDaily",
-                systemImage: "character.book.closed.fill"
-            )
+            if let w = data.word {
+                Label(data.config.hideMeaningOnLockScreen ? w.word : "\(w.word) · \(w.meaning)", systemImage: "character.book.closed")
+            } else {
+                Label("CozyDaily", systemImage: "character.book.closed")
+            }
         case .couple:
-            Label(
-                data.partner.map { "\($0.displayName): \($0.mood?.displayName ?? "đang online")" } ?? "Couple",
-                systemImage: data.partner?.mood?.monochromeSymbolName ?? "heart.fill"
-            )
+            if let p = data.partner {
+                let text = p.note.isEmpty ? (p.mood?.displayName ?? "Đã kết nối") : p.note
+                Label("\(p.displayName): \(text)", systemImage: p.mood?.monochromeSymbolName ?? "heart.fill")
+            } else {
+                Label("Chưa kết nối", systemImage: "heart")
+            }
         case .event:
             Label(
                 data.eventStatus.map { "\(data.event?.title ?? ""): \($0.sentence)" } ?? "Sự kiện",
@@ -784,27 +872,19 @@ private struct InlineAccessory: View {
             )
             .contentTransition(.numericText())
         case .weather:
-            Label(
-                data.weather.map { "\($0.temperatureText) \($0.condition.displayName) · \($0.placeName)" } ?? "Thời tiết",
-                systemImage: data.weather?.condition.asset.monochromeSymbolName ?? "cloud.sun.fill"
-            )
-            .contentTransition(.numericText())
-        case .combo:
             if let w = data.weather {
-                Label(
-                    "\(w.temperatureText) \(w.placeName) · \(data.lunar.shortText) ÂL",
-                    systemImage: w.condition.asset.monochromeSymbolName
-                )
-                .contentTransition(.numericText())
+                Label("\(w.temperatureText) \(w.condition.displayName) · \(w.placeName)", systemImage: w.condition.asset.monochromeSymbolName)
+                    .contentTransition(.numericText())
             } else {
-                Label("\(data.lunar.shortText) ÂL · 🔥\(data.streak) ngày", systemImage: "pawprint.fill")
+                Label("Mở app lấy thời tiết", systemImage: "cloud.sun")
             }
         default:
-            Label(
-                "\(data.lunar.shortText) ÂL · \(data.streak) ngày",
-                systemImage: data.checkIn?.mood.monochromeSymbolName ?? "pawprint.fill"
-            )
-            .contentTransition(.numericText())
+            if let w = data.weather {
+                Label("\(w.temperatureText) \(w.placeName) · \(data.lunar.shortText) ÂL", systemImage: w.condition.asset.monochromeSymbolName)
+                    .contentTransition(.numericText())
+            } else {
+                Label("\(data.lunar.shortText) ÂL · \(data.streak) ngày", systemImage: "calendar")
+            }
         }
     }
 }
@@ -814,6 +894,30 @@ private struct CircularAccessory: View {
 
     var body: some View {
         switch data.config.content {
+        case .schedule:
+            let tasks = data.todaySchedule.filter(\.isTask)
+            let done = tasks.filter(\.isDone).count
+            if !tasks.isEmpty {
+                Gauge(value: Double(done), in: 0...Double(max(tasks.count, 1))) {
+                    Image(systemName: "checklist")
+                } currentValueLabel: {
+                    Text("\(done)/\(tasks.count)")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .minimumScaleFactor(0.6)
+                }
+                .gaugeStyle(.accessoryCircularCapacity)
+                .widgetAccentable()
+            } else {
+                ZStack {
+                    AccessoryWidgetBackground()
+                    VStack(spacing: -1) {
+                        Image(systemName: "calendar").font(.system(size: 11, weight: .bold)).widgetAccentable()
+                        Text("\(data.todaySchedule.count)")
+                            .font(.system(size: 18, weight: .heavy, design: .rounded))
+                            .cozyNumeric(data.todaySchedule.count)
+                    }
+                }
+            }
         case .streak, .vocab:
             Gauge(value: Double(min(data.streak, 30)), in: 0...30) {
                 Image(systemName: "flame.fill")
@@ -835,11 +939,14 @@ private struct CircularAccessory: View {
         case .couple:
             ZStack {
                 AccessoryWidgetBackground()
-                VStack(spacing: -1) {
-                    Image(systemName: "heart.fill").font(.system(size: 10)).widgetAccentable()
-                    Text(anniversaryDays.map(String.init) ?? "–")
-                        .font(.system(size: 16, weight: .heavy, design: .rounded)).minimumScaleFactor(0.5)
-                        .cozyNumeric(anniversaryDays ?? 0)
+                VStack(spacing: 1) {
+                    Image(systemName: data.partner?.mood?.monochromeSymbolName ?? "heart.fill")
+                        .font(.system(size: 15, weight: .bold))
+                        .widgetAccentable()
+                    Text(data.partner?.displayName ?? "–")
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
             }
         case .weather, .combo:
@@ -855,7 +962,7 @@ private struct CircularAccessory: View {
                             .cozyNumeric(Int(w.temperatureC.rounded()))
                     }
                 } else {
-                    MascotGlyph(state: data.mascot)
+                    Image(systemName: "cloud.sun.fill").font(.system(size: 18))
                 }
             }
         default:
@@ -870,11 +977,6 @@ private struct CircularAccessory: View {
             .cozySwap(data.checkIn?.id)
         }
     }
-
-    var anniversaryDays: Int? {
-        guard let a = data.couple?.anniversary else { return nil }
-        return EventCounter().status(of: CozyEvent(title: "", kind: .countUp(since: a)), now: data.date).days
-    }
 }
 
 private struct RectangularAccessory: View {
@@ -884,86 +986,204 @@ private struct RectangularAccessory: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             switch data.config.content {
-            case .vocab:
-                if let w = data.word {
-                    HStack(spacing: 4) {
-                        Image(systemName: "character.book.closed.fill").font(.system(size: 11, weight: .bold)).widgetAccentable()
-                        Text(w.word).font(data.config.font.font(size: 15, weight: .bold)).lineLimit(1).widgetAccentable()
-                    }
-                    if !w.phonetic.isEmpty {
-                        Text(w.phonetic).font(.system(size: 10.5, design: .monospaced)).opacity(0.8).lineLimit(1)
-                    }
-                    // Chế độ ẩn nghĩa để luyện phản xạ: nghĩa chỉ hiện khi máy đã mở khóa.
-                    if data.config.hideMeaningOnLockScreen {
-                        Text(w.meaning).font(.system(size: 12, weight: .medium)).lineLimit(1).privacySensitive()
-                    } else {
-                        Text(w.meaning).font(.system(size: 12, weight: .medium)).lineLimit(1)
+            case .schedule:
+                // 1. Lịch & Công việc hôm nay — cực gọn, rõ từng dòng
+                let pending = data.todaySchedule.filter { !$0.isDone }
+                let doneCount = data.todaySchedule.filter { $0.isTask && $0.isDone }.count
+                let totalTasks = data.todaySchedule.filter(\.isTask).count
+                HStack(spacing: 4) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 11, weight: .bold))
+                        .widgetAccentable()
+                    Text("Hôm nay")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .widgetAccentable()
+                    Spacer(minLength: 4)
+                    if totalTasks > 0 {
+                        Text("\(doneCount)/\(totalTasks)")
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .opacity(0.8)
                     }
                 }
+                if pending.isEmpty {
+                    if let e = data.event, let s = data.eventStatus {
+                        Text(e.title)
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .lineLimit(1)
+                        Text(s.sentence)
+                            .font(.system(size: 11.5, design: .rounded))
+                            .opacity(0.8)
+                            .lineLimit(1)
+                    } else {
+                        Text("Không có việc tồn đọng")
+                            .font(.system(size: 12, weight: .medium, design: .rounded))
+                            .opacity(0.85)
+                            .lineLimit(1)
+                        Text("\(data.lunar.shortText) ÂL · \(data.lunar.yearName)")
+                            .font(.system(size: 11, design: .rounded))
+                            .opacity(0.7)
+                            .lineLimit(1)
+                    }
+                } else {
+                    ForEach(pending.prefix(2)) { item in
+                        HStack(spacing: 4) {
+                            Image(systemName: item.isTask ? "circle" : "clock")
+                                .font(.system(size: 9, weight: .semibold))
+                                .opacity(0.8)
+                            if let time = item.timeText {
+                                Text(time)
+                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                    .opacity(0.85)
+                            }
+                            Text(item.title)
+                                .font(.system(size: 12, weight: .medium, design: .rounded))
+                                .lineLimit(1)
+                        }
+                    }
+                }
+
+            case .vocab:
+                // 2. Từ vựng — tối giản 3 dòng cực sắc nét (không chèn icon rối mắt)
+                if let w = data.word {
+                    Text(w.word)
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                        .widgetAccentable()
+                    if !w.phonetic.isEmpty {
+                        Text(w.phonetic)
+                            .font(.system(size: 11, design: .monospaced))
+                            .opacity(0.75)
+                            .lineLimit(1)
+                    }
+                    if data.config.hideMeaningOnLockScreen {
+                        Text(w.meaning)
+                            .font(.system(size: 12, weight: .medium, design: .rounded))
+                            .lineLimit(1)
+                            .privacySensitive()
+                    } else {
+                        Text(w.meaning)
+                            .font(.system(size: 12, weight: .medium, design: .rounded))
+                            .lineLimit(1)
+                    }
+                } else {
+                    Text("Từ vựng hôm nay").font(.system(size: 13, weight: .bold, design: .rounded)).widgetAccentable()
+                    Text("Mở app chọn kho từ").font(.system(size: 11.5)).opacity(0.8)
+                }
+
             case .weather:
+                // 3. Thời tiết thật — chuẩn gọn kiểu Apple (nhiệt độ + tình trạng + cao/thấp + ẩm)
                 if let w = data.weather {
-                    HStack(spacing: 4) {
-                        Image(systemName: w.condition.asset.monochromeSymbolName).font(.system(size: 12, weight: .bold)).widgetAccentable()
-                        Text("\(w.temperatureText) \(w.condition.displayName)")
-                            .font(.system(size: 15, weight: .heavy, design: .rounded))
+                    HStack(spacing: 5) {
+                        Image(systemName: w.condition.asset.monochromeSymbolName)
+                            .font(.system(size: 13, weight: .bold))
+                            .widgetAccentable()
+                        Text(w.temperatureText)
+                            .font(.system(size: 17, weight: .heavy, design: .rounded))
                             .cozyNumeric(Int(w.temperatureC.rounded()))
                             .widgetAccentable()
+                        Text(w.placeName)
+                            .font(.system(size: 12.5, weight: .semibold, design: .rounded))
+                            .opacity(0.9)
+                            .lineLimit(1)
                     }
-                    Text("\(w.placeName) · C:\(Int(w.highC))° T:\(Int(w.lowC))°")
-                        .font(.system(size: 11.5, weight: .semibold, design: .rounded))
+                    Text("\(w.condition.displayName) · Cảm giác \(Int(w.apparentC.rounded()))°")
+                        .font(.system(size: 11.5, weight: .medium, design: .rounded))
+                        .opacity(0.9)
                         .lineLimit(1)
-                    Text(data.mascot.caption)
-                        .font(.system(size: 11))
-                        .opacity(0.85)
+                    Text("↑\(Int(w.highC.rounded()))° ↓\(Int(w.lowC.rounded()))° · Ẩm \(Int((w.humidity * 100).rounded()))%")
+                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                        .opacity(0.78)
                         .lineLimit(1)
                 } else {
-                    Label("Mở app lấy thời tiết thật", systemImage: "cloud.sun.fill").font(.system(size: 12, weight: .semibold))
-                }
-            case .couple:
-                HStack(spacing: 4) {
-                    Image(systemName: data.partner?.mood?.monochromeSymbolName ?? "heart.fill").widgetAccentable()
-                    Text(data.partner?.displayName ?? "Couple").font(.system(size: 14, weight: .bold)).lineLimit(1)
-                    if let b = data.partner?.deviceBattery {
-                        Spacer(minLength: 2)
-                        Text("\(Int(b * 100))%").font(.system(size: 10, weight: .bold, design: .rounded)).opacity(0.8)
+                    HStack(spacing: 4) {
+                        Image(systemName: "cloud.sun.fill").widgetAccentable()
+                        Text("Thời tiết").font(.system(size: 14, weight: .bold, design: .rounded)).widgetAccentable()
                     }
+                    Text("Mở CozyDaily để tải thời tiết thật")
+                        .font(.system(size: 11.5, design: .rounded))
+                        .opacity(0.8)
+                        .lineLimit(2)
                 }
-                Text(data.partner?.note.isEmpty == false ? "“\(data.partner!.note)”" : (data.partner?.mood?.displayName ?? "Đang kết nối"))
-                    .font(.system(size: 12, weight: .medium))
-                    .lineLimit(1)
-                Text(data.partner?.weatherLine ?? "\(data.lunar.shortText) ÂL")
-                    .font(.system(size: 11))
-                    .opacity(0.8)
-                    .lineLimit(1)
+
+            case .couple:
+                // 4. Cảm xúc người được kết nối — dữ liệu thật 100%
+                if let p = data.partner {
+                    HStack(spacing: 4) {
+                        Image(systemName: p.mood?.monochromeSymbolName ?? "heart.fill")
+                            .font(.system(size: 12, weight: .bold))
+                            .widgetAccentable()
+                        Text(p.displayName)
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .lineLimit(1)
+                            .widgetAccentable()
+                        if let m = p.mood {
+                            Text("· \(m.displayName)")
+                                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                .opacity(0.88)
+                                .lineLimit(1)
+                        }
+                        Spacer(minLength: 2)
+                        if let b = p.deviceBattery {
+                            Text("\(Int(b * 100))%")
+                                .font(.system(size: 10.5, weight: .bold, design: .rounded))
+                                .opacity(0.78)
+                        }
+                    }
+                    Text(p.note.isEmpty ? (p.weatherLine ?? "Đang kết nối với bạn") : "“\(p.note)”")
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .lineLimit(1)
+                    HStack(spacing: 4) {
+                        if !p.note.isEmpty, let w = p.weatherLine {
+                            Text(w).lineLimit(1)
+                            Text("·")
+                        }
+                        Text(p.updatedAt.formatted(.relative(presentation: .named, unitsStyle: .narrow)))
+                            .lineLimit(1)
+                    }
+                    .font(.system(size: 10.5, design: .rounded))
+                    .opacity(0.75)
+                } else {
+                    HStack(spacing: 4) {
+                        Image(systemName: "heart.fill").font(.system(size: 12)).widgetAccentable()
+                        Text("Chưa kết nối")
+                            .font(.system(size: 13.5, weight: .bold, design: .rounded))
+                            .widgetAccentable()
+                    }
+                    Text("Mở CozyDaily → Kết nối")
+                        .font(.system(size: 11.5, weight: .medium, design: .rounded))
+                        .opacity(0.85)
+                    Text("để hiện cảm xúc người ấy")
+                        .font(.system(size: 11, design: .rounded))
+                        .opacity(0.7)
+                }
+
             case .event:
                 Label(data.event?.title ?? "Sự kiện", systemImage: data.event?.kind.symbolName ?? "calendar")
-                    .font(.system(size: 12.5, weight: .bold)).lineLimit(1).widgetAccentable()
+                    .font(.system(size: 12.5, weight: .bold, design: .rounded)).lineLimit(1).widgetAccentable()
                 Text(data.eventStatus?.sentence ?? "")
-                    .font(.system(size: 17, weight: .heavy, design: .rounded))
+                    .font(.system(size: 16, weight: .heavy, design: .rounded))
                     .lineLimit(1)
                     .cozyNumeric(data.eventStatus?.days ?? 0)
                 Text("\(data.lunar.shortText) ÂL · \(data.lunar.yearName)")
-                    .font(.system(size: 10.5))
-                    .opacity(0.8)
+                    .font(.system(size: 10.5, design: .rounded))
+                    .opacity(0.78)
                     .lineLimit(1)
+
             case .moodFood, .mascot:
                 HStack(spacing: 4) {
                     Image(systemName: data.checkIn?.mood.monochromeSymbolName ?? "pawprint.fill").widgetAccentable()
                     Text(data.checkIn?.mood.displayName ?? data.mascot.species.displayName)
-                        .font(.system(size: 14, weight: .bold)).widgetAccentable()
+                        .font(.system(size: 14, weight: .bold, design: .rounded)).widgetAccentable()
                 }
-                Text(
-                    data.checkIn?.foods.isEmpty == false
-                        ? data.checkIn!.foods.map(\.displayName).joined(separator: ", ")
-                        : data.mascot.caption
-                )
-                .font(.system(size: 11.5))
-                .lineLimit(1)
+                Text(data.checkIn?.note.isEmpty == false ? "“\(data.checkIn!.note)”" : (data.checkIn?.foods.map(\.displayName).joined(separator: ", ") ?? "Chưa check-in hôm nay"))
+                    .font(.system(size: 11.5, design: .rounded))
+                    .lineLimit(1)
                 if let s = data.checkIn?.socialBattery {
                     Gauge(value: Double(s), in: 0...100) { Text("Pin") }.gaugeStyle(.accessoryLinearCapacity)
                 }
+
             default:
-                // Combo 2-in-1 real-data Lock Screen: thời tiết thật + từ vựng + sự kiện/âm lịch
                 if let w = data.weather {
                     HStack(spacing: 4) {
                         Image(systemName: w.condition.asset.monochromeSymbolName).font(.system(size: 11, weight: .bold)).widgetAccentable()
@@ -971,25 +1191,21 @@ private struct RectangularAccessory: View {
                             .font(.system(size: 12.5, weight: .bold, design: .rounded))
                             .lineLimit(1)
                             .widgetAccentable()
-                            .cozyNumeric(Int(w.temperatureC.rounded()))
                     }
                 }
-                if let word = data.word {
-                    Text("✨ \(word.word) — \(word.meaning)")
-                        .font(.system(size: 11.5, weight: .medium))
+                if let next = data.todaySchedule.first(where: { !$0.isDone }) {
+                    Text("\(next.timeText.map { "\($0) " } ?? "• ")\(next.title)")
+                        .font(.system(size: 11.5, weight: .medium, design: .rounded))
+                        .lineLimit(1)
+                } else if let word = data.word {
+                    Text("\(word.word) — \(word.meaning)")
+                        .font(.system(size: 11.5, weight: .medium, design: .rounded))
                         .lineLimit(1)
                 }
-                if let e = data.event, let s = data.eventStatus {
-                    Text("\(e.emoji) \(e.title): \(s.sentence)")
-                        .font(.system(size: 11))
-                        .opacity(0.85)
-                        .lineLimit(1)
-                } else {
-                    Text("\(data.lunar.shortText) ÂL · 🔥 \(data.streak) ngày")
-                        .font(.system(size: 11))
-                        .opacity(0.85)
-                        .lineLimit(1)
-                }
+                Text("\(data.lunar.shortText) ÂL · 🔥 \(data.streak) ngày")
+                    .font(.system(size: 10.5, design: .rounded))
+                    .opacity(0.78)
+                    .lineLimit(1)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

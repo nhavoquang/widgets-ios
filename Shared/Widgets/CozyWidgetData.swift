@@ -25,6 +25,7 @@ struct CozyWidgetData {
     var squad: SharedSpace?
     var event: CozyEvent?
     var eventStatus: EventStatus?
+    var todaySchedule: [TodayScheduleItem]
     var tomorrowEvents: [EventItem]
     var lunar: LunarDate
     var holiday: HolidayDetector.Holiday?
@@ -75,6 +76,7 @@ struct CozyWidgetData {
             squad: snap.spaces.preferred(.squad),
             event: event,
             eventStatus: event.map { counter.status(of: $0, now: date) },
+            todaySchedule: repository.todaySchedule(now: date),
             tomorrowEvents: tomorrowEvents,
             lunar: VietnameseLunarCalendar.lunarDate(from: date, calendar: cal),
             holiday: HolidayDetector.holiday(on: date, calendar: cal)

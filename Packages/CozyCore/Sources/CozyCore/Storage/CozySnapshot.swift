@@ -105,6 +105,7 @@ public struct CozySnapshot: Codable, Hashable, Sendable {
     public var learnedLog: [String: Int]
     public var todayWord: TodayWordPointer?
     public var events: [CozyEvent]
+    public var tasks: [CozyTask]
     public var spaces: [SharedSpace]
     public var activeSpaceID: UUID?
     public var widgetConfigs: [WidgetConfig]
@@ -121,6 +122,7 @@ public struct CozySnapshot: Codable, Hashable, Sendable {
         learnedLog: [String: Int] = [:],
         todayWord: TodayWordPointer? = nil,
         events: [CozyEvent] = [],
+        tasks: [CozyTask] = [],
         spaces: [SharedSpace] = [],
         activeSpaceID: UUID? = nil,
         widgetConfigs: [WidgetConfig] = [],
@@ -135,6 +137,7 @@ public struct CozySnapshot: Codable, Hashable, Sendable {
         self.learnedLog = learnedLog
         self.todayWord = todayWord
         self.events = events
+        self.tasks = tasks
         self.spaces = spaces
         self.activeSpaceID = activeSpaceID
         self.widgetConfigs = widgetConfigs
@@ -142,5 +145,47 @@ public struct CozySnapshot: Codable, Hashable, Sendable {
         self.updatedAt = updatedAt
     }
 
+    private enum CodingKeys: String, CodingKey {
+        case schemaVersion, settings, checkIns, customWords, reviewStates, learnedLog, todayWord, events, tasks, spaces, activeSpaceID, widgetConfigs, weather, updatedAt, deletedIDs
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.schemaVersion = try c.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? Self.currentSchema
+        self.settings = try c.decodeIfPresent(UserSettings.self, forKey: .settings) ?? UserSettings()
+        self.checkIns = try c.decodeIfPresent([CheckIn].self, forKey: .checkIns) ?? []
+        self.customWords = try c.decodeIfPresent([VocabWord].self, forKey: .customWords) ?? []
+        self.reviewStates = try c.decodeIfPresent([String: ReviewState].self, forKey: .reviewStates) ?? [:]
+        self.learnedLog = try c.decodeIfPresent([String: Int].self, forKey: .learnedLog) ?? [:]
+        self.todayWord = try c.decodeIfPresent(TodayWordPointer.self, forKey: .todayWord)
+        self.events = try c.decodeIfPresent([CozyEvent].self, forKey: .events) ?? []
+        self.tasks = try c.decodeIfPresent([CozyTask].self, forKey: .tasks) ?? []
+        self.spaces = try c.decodeIfPresent([SharedSpace].self, forKey: .spaces) ?? []
+        self.activeSpaceID = try c.decodeIfPresent(UUID.self, forKey: .activeSpaceID)
+        self.widgetConfigs = try c.decodeIfPresent([WidgetConfig].self, forKey: .widgetConfigs) ?? []
+        self.weather = try c.decodeIfPresent(WeatherSnapshot.self, forKey: .weather)
+        self.updatedAt = try c.decodeIfPresent(Date.self, forKey: .updatedAt) ?? Date()
+        self.deletedIDs = try c.decodeIfPresent([String: Date].self, forKey: .deletedIDs)
+    }
+
     public static let empty = CozySnapshot()
+
+    /// Khởi tạo sạch hoàn toàn bằng dữ liệu thật (không tạo người yêu/sự kiện/thời tiết giả).
+    public static func freshReal(now: Date = Date()) -> CozySnapshot {
+        let configs: [WidgetConfig] = [
+            WidgetConfig(name: "Lịch & Việc hôm nay", content: .schedule, accent: .accentSky, font: .cleanModern),
+            WidgetConfig(name: "Từ vựng hôm nay", content: .vocab, accent: .accentSage, font: .cozyRounded),
+            WidgetConfig(name: "Thời tiết thật", content: .weather, accent: .accentSky, font: .cozyRounded),
+            WidgetConfig(name: "Người kết nối", content: .couple, accent: .accentPeach, font: .cozyRounded),
+        ]
+        return CozySnapshot(settings: UserSettings(), widgetConfigs: configs, weather: nil, updatedAt: now)
+    }
+
+    /// Kiểm tra còn sót dữ liệu mẫu từ các bản cũ không (vd. Gấu, Đi Đà Lạt, TP.HCM 27° mẫu).
+    public var hasDemoData: Bool {
+        let hasDemoEvents = events.contains { DemoData.isDemo($0.id) }
+        let hasDemoCheckIns = checkIns.contains { DemoData.isDemo($0.id) }
+        let hasDemoSpaces = spaces.contains { $0.cloud == nil && ($0.name == "Mình & Gấu" || $0.name == "Hội Bánh Tráng") }
+        return hasDemoEvents || hasDemoCheckIns || hasDemoSpaces
+    }
 }

@@ -42,11 +42,11 @@ public final class CozyRepository: @unchecked Sendable {
         return cached!
     }
 
-    /// Lần chạy đầu tiên: tạo dữ liệu mẫu và ghi xuống đĩa ngay để App/Widget dùng chung một bản.
+    /// Lần chạy đầu tiên: tạo dữ liệu thật sạch sẽ (không tạo người yêu/thời tiết/sự kiện giả).
     private func loadOrCreate() -> CozySnapshot {
         if let s = store.load() { return s }
         if let c = cached { return c }
-        let fresh = DemoData.makeInitialSnapshot(now: Date(), calendar: calendar)
+        let fresh = CozySnapshot.freshReal(now: Date())
         try? store.save(fresh)
         return fresh
     }
@@ -312,14 +312,149 @@ public final class CozyRepository: @unchecked Sendable {
         }
     }
 
-    /// Xóa toàn bộ dữ liệu mẫu (không gian chưa đồng bộ, check-in, sự kiện mẫu).
+    /// Xóa toàn bộ dữ liệu mẫu (không gian mẫu, check-in, sự kiện mẫu, thời tiết mẫu).
     public func removeDemoData() {
-        mutate([.checkIn, .events, .spaces, .vocab]) { s in
+        mutate([.checkIn, .events, .spaces, .vocab, .weather]) { s in
             s.spaces.removeAll { $0.cloud == nil }
             s.checkIns.removeAll { DemoData.isDemo($0.id) }
             s.events.removeAll { DemoData.isDemo($0.id) }
             s.learnedLog = s.learnedLog.filter { day, _ in s.reviewStates.values.contains { $0.lastReviewed.map { calendar.dayKey(for: $0) == day } ?? false } }
+            if let w = s.weather, w.regionKey == "demo" || (w.placeName == "TP.HCM" && Int(w.temperatureC) == 27 && Int(w.highC) == 31 && Int(w.lowC) == 24) {
+                s.weather = nil
+            }
             s.activeSpaceID = s.spaces.first?.id
+        }
+    }
+
+    // MARK: - Daily Tasks & Today Schedule
+
+    @discardableResult
+    public func addTask(title: String, timeText: String? = nil, day: Date? = Date(), accent: ColorToken = .accentSky) -> CozyTask? {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let cleanTime = timeText?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let task = CozyTask(
+            title: String(trimmed.prefix(60)),
+            dayKey: day.map { calendar.dayKey(for: $0) },
+            timeText: (cleanTime?.isEmpty == false) ? cleanTime : nil,
+            isDone: false,
+            accent: accent
+        )
+        mutate([.events]) { s in
+            s.tasks.append(task)
+        }
+        return task
+    }
+
+    public func toggleTask(id: UUID) {
+        mutate([.events]) { s in
+            if let i = s.tasks.firstIndex(where: { $0.id == id }) {
+                s.tasks[i].isDone.toggle()
+            }
+        }
+    }
+
+    public func deleteTask(id: UUID) {
+        mutate([.events]) { s in
+            s.tasks.removeAll { $0.id == id }
+        }
+    }
+
+    public func tasks(on day: Date) -> [CozyTask] {
+        let key = calendar.dayKey(for: day)
+        return snapshot(reload: true).tasks
+            .filter { $0.dayKey == nil || $0.dayKey == key }
+            .sorted {
+                if $0.isDone != $1.isDone { return !$0.isDone }
+                return ($0.timeText ?? "99:99", $0.createdAt) < ($1.timeText ?? "99:99", $1.createdAt)
+            }
+    }
+
+    /// Gộp lịch hôm nay (Apple Calendar + sự kiện lặp tuần/deadline/countdown trong ngày) + công việc `CozyTask`.
+    public func todaySchedule(now: Date = Date()) -> [TodayScheduleItem] {
+        let snap = snapshot(reload: true)
+        let key = calendar.dayKey(for: now)
+        let todayStart = calendar.startOfDay(for: now)
+        var items: [TodayScheduleItem] = []
+
+        for e in snap.events {
+            if case .countUp = e.kind { continue }
+            guard let next = counter.nextOccurrence(of: e, now: todayStart),
+                  calendar.isDate(next, inSameDayAs: now) else { continue }
+            let timeStr: String? = {
+                switch e.kind {
+                case let .weekly(_, h, m):
+                    return String(format: "%02d:%02d", h, m)
+                case let .deadline(due):
+                    let c = calendar.dateComponents([.hour, .minute], from: due)
+                    return String(format: "%02d:%02d", c.hour ?? 0, c.minute ?? 0)
+                default:
+                    return nil
+                }
+            }()
+            items.append(TodayScheduleItem(
+                id: "event-\(e.id.uuidString)",
+                title: e.title,
+                timeText: timeStr,
+                isTask: false,
+                taskID: nil,
+                isDone: false,
+                accent: e.accent
+            ))
+        }
+
+        for t in snap.tasks where t.dayKey == nil || t.dayKey == key {
+            items.append(TodayScheduleItem(
+                id: "task-\(t.id.uuidString)",
+                title: t.title,
+                timeText: t.timeText,
+                isTask: true,
+                taskID: t.id,
+                isDone: t.isDone,
+                accent: t.accent
+            ))
+        }
+
+        return items.sorted {
+            if $0.isDone != $1.isDone { return !$0.isDone }
+            return ($0.timeText ?? "99:99", $0.title) < ($1.timeText ?? "99:99", $1.title)
+        }
+    }
+
+    /// Cập nhật trạng thái thật của người kết nối từ link `cozydaily://partner?...` (chạy được cả khi chưa bật iCloud).
+    public func applyIncomingPartner(_ update: IncomingPartnerUpdate) {
+        mutate([.spaces]) { s in
+            let partnerMember = MemberStatus(
+                id: "linked-partner",
+                displayName: update.name,
+                species: update.species,
+                mood: update.mood,
+                foods: [],
+                socialBattery: nil,
+                deviceBattery: update.deviceBattery,
+                weatherLine: update.weatherLine,
+                note: update.note,
+                updatedAt: update.updatedAt
+            )
+            // Xóa couple mẫu cũ nếu còn sót
+            s.spaces.removeAll { $0.kind == .couple && $0.cloud == nil && $0.name == "Mình & Gấu" }
+            if let i = s.spaces.firstIndex(where: { $0.kind == .couple }) {
+                if let pIdx = s.spaces[i].members.firstIndex(where: { $0.id != DemoData.meID }) {
+                    s.spaces[i].members[pIdx] = partnerMember
+                } else {
+                    s.spaces[i].members.append(partnerMember)
+                }
+                s.spaces[i].modifiedAt = update.updatedAt
+            } else {
+                let me = MemberStatus(id: DemoData.meID, displayName: s.settings.displayName, species: s.settings.species)
+                let space = SharedSpace(
+                    kind: .couple,
+                    name: "\(s.settings.displayName) & \(update.name)",
+                    members: [me, partnerMember]
+                )
+                s.spaces.append(space)
+                s.activeSpaceID = space.id
+            }
         }
     }
 

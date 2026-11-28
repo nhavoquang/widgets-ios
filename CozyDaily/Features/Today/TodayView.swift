@@ -1,7 +1,8 @@
 import SwiftUI
 import CozyCore
 
-/// Tab 1 — Hôm nay (Today Hub).
+/// Tab 1 — Hôm nay: Điều khiển trực tiếp, cực đơn giản cho đúng 4 Widget Lock Screen thật:
+/// 1. Lịch & Công việc hôm nay · 2. Từ vựng · 3. Thời tiết thật · 4. Cảm xúc & Người kết nối.
 struct TodayView: View {
     @Environment(AppModel.self) private var model
     @State private var showCheckIn = false
@@ -13,19 +14,44 @@ struct TodayView: View {
             ZStack {
                 CozyAmbientBackground()
                 ScrollView {
-                    VStack(spacing: 16) {
-                        HeroHeader(showSettings: $showSettings)
-                        QuickStatsStrip()
+                    VStack(spacing: 14) {
+                        TopHeaderBar(showSettings: $showSettings)
+
+                        if let toast = model.incomingPartnerToast {
+                            HStack(spacing: 8) {
+                                Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.accentSage)
+                                Text(toast).font(.system(size: 13, weight: .semibold, design: .rounded)).foregroundStyle(Color.inkCoffee)
+                                Spacer()
+                                Button { model.incomingPartnerToast = nil } label: {
+                                    Image(systemName: "xmark").font(.caption.bold()).foregroundStyle(Color.inkTaupe)
+                                }
+                            }
+                            .padding(12)
+                            .background(RoundedRectangle(cornerRadius: 16).fill(Color.accentSage.opacity(0.16)))
+                        }
+
+                        if model.hasDemoData {
+                            DemoCleanupBanner()
+                        }
+
+                        // 1. Lịch & Công việc hôm nay (ra Lock Screen ngay)
+                        TodayScheduleCard()
+
+                        // 2. Từ vựng học hôm nay (ra Lock Screen ngay)
                         VocabCard(showDecks: $showDecks)
-                        CheckInBar(showCheckIn: $showCheckIn)
+
+                        // 3. Thời tiết thật (ra Lock Screen ngay)
                         WeatherCard()
-                        UpcomingEventsCard()
+
+                        // 4. Cảm xúc của bạn & Người kết nối (ra Lock Screen ngay)
+                        MoodAndPartnerCard(showCheckIn: $showCheckIn)
                     }
                     .padding(.horizontal, 16)
                     .padding(.bottom, 28)
                 }
+                .scrollDismissesKeyboard(.interactively)
                 .refreshable {
-                    await model.weather.refreshIfNeeded(force: true)
+                    await model.refreshWeatherNow()
                     model.refresh()
                 }
             }
@@ -41,125 +67,205 @@ struct TodayView: View {
     }
 }
 
-// MARK: - Hero
+// MARK: - Top Bar & Demo Cleanup
 
-private struct HeroHeader: View {
+private struct TopHeaderBar: View {
     @Environment(AppModel.self) private var model
     @Binding var showSettings: Bool
-    @State private var petCount = 0
-    @State private var showHearts = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            // Thanh ngày âm dương + nút Cài đặt gọn xinh
-            HStack(spacing: 8) {
-                CozyBadgePill(text: shortDateLine, symbol: "sparkles", tint: .accentHoney)
-                Spacer(minLength: 4)
-                Button {
-                    Haptics.tap()
-                    showSettings = true
-                } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: "slider.horizontal.3")
-                            .font(.system(size: 13, weight: .bold))
-                        Text("Cài đặt")
-                            .font(.system(size: 13, weight: .bold, design: .rounded))
-                    }
+        HStack(alignment: .center, spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(dateLine)
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color.inkTaupe)
+                Text("Chào \(model.settings.displayName)")
+                    .font(CozyFont.title(26, weight: .heavy))
                     .foregroundStyle(Color.inkCoffee)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 7)
-                    .background(Capsule().fill(Color.cardIvory))
-                    .overlay(Capsule().strokeBorder(Color.cardBorder, lineWidth: 1))
-                    .shadow(color: Color.inkCoffee.opacity(0.06), radius: 6, y: 2)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Mở cài đặt")
+                    .lineLimit(1)
             }
-
-            // Thẻ chào ấm áp kèm linh vật chạm được
-            HStack(alignment: .center, spacing: 14) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(DayPart(date: model.now).greeting + ",")
-                        .font(.system(size: 14, weight: .semibold, design: .rounded))
-                        .foregroundStyle(Color.inkTaupe)
-                    Text(model.settings.displayName)
-                        .font(CozyFont.title(28, weight: .heavy))
-                        .foregroundStyle(Color.inkCoffee)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.75)
-                    CozySpeechBubble(text: model.mascot.caption, tint: .accentPeach)
+            Spacer()
+            Button {
+                Haptics.tap()
+                showSettings = true
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 13, weight: .bold))
+                    Text("Cài đặt")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
                 }
-                Spacer(minLength: 0)
-                Button { petMascot() } label: {
-                    ZStack {
-                        AnimatedMascotView(
-                            state: model.mascot,
-                            size: 100,
-                            reaction: [
-                                model.latestCheckInToday?.mood.rawValue ?? "",
-                                "\(petCount)"
-                            ] + (model.latestCheckInToday?.foods.map(\.rawValue) ?? [])
-                        )
-                        if showHearts {
-                            VStack(spacing: 2) {
-                                Text("💕")
-                                    .font(.system(size: 18))
-                                    .offset(x: 10)
-                                Text("✨")
-                                    .font(.system(size: 13))
-                                    .offset(x: -14)
-                            }
-                            .offset(y: -48)
-                            .transition(.scale(scale: 0.4).combined(with: .opacity))
-                        }
-                    }
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Nựng \(model.settings.species.displayName)")
+                .foregroundStyle(Color.inkCoffee)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Capsule().fill(Color.cardIvory))
+                .overlay(Capsule().strokeBorder(Color.cardBorder, lineWidth: 1))
+                .shadow(color: Color.inkCoffee.opacity(0.06), radius: 6, y: 2)
             }
-            .cozyCard(accent: .accentPeach, padding: 16)
+            .buttonStyle(.plain)
         }
         .padding(.top, 8)
     }
 
-    private func petMascot() {
-        petCount += 1
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) { showHearts = true }
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(900))
-            withAnimation(.easeOut(duration: 0.3)) { showHearts = false }
-        }
-    }
-
-    private var shortDateLine: String {
+    private var dateLine: String {
         let f = DateFormatter()
         f.locale = Locale(identifier: "vi_VN")
-        f.dateFormat = "EEE, d/M"
-        let lunar = model.lunarToday
-        return "\(f.string(from: model.now).capitalized) · \(lunar.shortText) ÂL"
+        f.dateFormat = "EEEE, d/M"
+        return "\(f.string(from: model.now).capitalized) · \(model.lunarToday.shortText) ÂL"
     }
 }
 
-private struct QuickStatsStrip: View {
+private struct DemoCleanupBanner: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                CozyBadgePill(text: "🔥 Chuỗi \(model.streak) ngày", symbol: nil, tint: .accentPeach)
-                CozyBadgePill(text: "✨ \(model.learnedToday) từ hôm nay", symbol: nil, tint: .accentSage)
-                if model.dueCount > 0 {
-                    CozyBadgePill(text: "📖 \(model.dueCount) cần ôn", symbol: nil, tint: .accentSky)
-                }
-                if let holiday = HolidayDetector.holiday(on: model.now) {
-                    CozyBadgePill(text: "\(holiday.emoji) \(holiday.name)", symbol: nil, tint: .accentHoney)
-                }
+        HStack(spacing: 10) {
+            Image(systemName: "sparkles")
+                .foregroundStyle(Color.accentPeach)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Đang còn dữ liệu mẫu cũ")
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.inkCoffee)
+                Text("Xóa đi để app & Lock Screen chỉ hiện 100% data thật của bạn.")
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(Color.inkTaupe)
             }
+            Spacer(minLength: 4)
+            Button("Xóa sạch") {
+                model.removeDemoData()
+                Task { await model.refreshWeatherNow() }
+            }
+            .buttonStyle(CozyPillButtonStyle(tint: .accentPeach, filled: true))
         }
+        .cozyCard(accent: .accentPeach, padding: 12)
     }
 }
 
-// MARK: - Vocab
+// MARK: - 1. Lịch & Công việc hôm nay
+
+private struct TodayScheduleCard: View {
+    @Environment(AppModel.self) private var model
+    @State private var newTitle = ""
+    @State private var newTime = ""
+    @State private var syncingCal = false
+
+    private var items: [TodayScheduleItem] { model.todaySchedule }
+    private var doneCount: Int { items.filter { $0.isTask && $0.isDone }.count }
+    private var totalTasks: Int { items.filter(\.isTask).count }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 11) {
+            CozySectionHeader(
+                title: "Lịch & Việc hôm nay",
+                symbol: "checklist",
+                accent: .accentSky,
+                trailing: totalTasks > 0 ? "\(doneCount)/\(totalTasks) xong" : "Lock Screen",
+                animatedIcon: .calendar
+            )
+
+            // Thêm việc nhanh 1 dòng (gõ xong Enter là lên Lock Screen luôn)
+            HStack(spacing: 6) {
+                TextField("Giờ", text: $newTime)
+                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                    .multilineTextAlignment(.center)
+                    .frame(width: 56)
+                    .padding(.vertical, 9)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.bgCream))
+                    .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.cardBorder))
+                TextField("Thêm việc hôm nay…", text: $newTitle)
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .padding(.horizontal, 11)
+                    .padding(.vertical, 9)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.bgCream))
+                    .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.cardBorder))
+                    .submitLabel(.done)
+                    .onSubmit { addQuickTask() }
+                Button { addQuickTask() } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 36, height: 36)
+                        .background(Circle().fill(newTitle.trimmingCharacters(in: .whitespaces).isEmpty ? Color.inkTaupe.opacity(0.3) : Color.accentSky))
+                }
+                .buttonStyle(.plain)
+                .disabled(newTitle.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+
+            if items.isEmpty {
+                Text("Chưa có lịch hay công việc nào hôm nay. Thêm việc ở trên hoặc đồng bộ Apple Calendar để hiện lên màn hình khóa.")
+                    .font(CozyFont.body(12.5))
+                    .foregroundStyle(Color.inkTaupe)
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(items) { item in
+                        HStack(spacing: 10) {
+                            if item.isTask, let taskID = item.taskID {
+                                Button { model.toggleTask(taskID) } label: {
+                                    Image(systemName: item.isDone ? "checkmark.circle.fill" : "circle")
+                                        .font(.system(size: 20, weight: .semibold))
+                                        .foregroundStyle(item.isDone ? Color.accentSage : Color.accentSky)
+                                }
+                                .buttonStyle(.plain)
+                            } else {
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(item.accent.color)
+                                    .frame(width: 4, height: 22)
+                            }
+                            if let time = item.timeText {
+                                Text(time)
+                                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(Color.accentSky)
+                            }
+                            Text(item.title)
+                                .font(.system(size: 14.5, weight: .semibold, design: .rounded))
+                                .foregroundStyle(Color.inkCoffee)
+                                .strikethrough(item.isDone)
+                                .opacity(item.isDone ? 0.5 : 1)
+                            Spacer()
+                            if item.isTask, let taskID = item.taskID {
+                                Button { model.deleteTask(taskID) } label: {
+                                    Image(systemName: "xmark")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundStyle(Color.inkTaupe.opacity(0.6))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
+                        .background(RoundedRectangle(cornerRadius: 13).fill(Color.bgCream))
+                    }
+                }
+            }
+
+            Button {
+                syncingCal = true
+                Task {
+                    await model.importAppleCalendar()
+                    syncingCal = false
+                }
+            } label: {
+                Label(
+                    syncingCal ? "Đang lấy lịch iPhone…" : (model.settings.syncAppleCalendar ? "Cập nhật lại từ Apple Calendar" : "Đồng bộ lịch từ Apple Calendar"),
+                    systemImage: "calendar.badge.plus"
+                )
+            }
+            .buttonStyle(CozyPillButtonStyle(tint: .accentSky, filled: false))
+            .disabled(syncingCal)
+        }
+        .cozyCard(accent: .accentSky)
+    }
+
+    private func addQuickTask() {
+        let title = newTitle
+        let time = newTime
+        newTitle = ""
+        newTime = ""
+        model.addTask(title: title, timeText: time)
+    }
+}
+
+// MARK: - 2. Từ vựng học hôm nay
 
 private struct VocabCard: View {
     @Environment(AppModel.self) private var model
@@ -167,24 +273,26 @@ private struct VocabCard: View {
     @State private var revealed = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 11) {
             CozySectionHeader(
                 title: "Từ vựng hôm nay",
                 symbol: "character.book.closed.fill",
                 accent: .accentSage,
-                trailing: "🔥 \(model.streak) ngày · \(model.dueCount) cần ôn",
+                trailing: "🔥 \(model.streak) ngày · \(model.dueCount) ôn",
                 animatedIcon: .vocab
             )
             if let w = model.currentWord {
                 HStack(alignment: .center) {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 3) {
                         Text(w.word)
-                            .font(.system(size: 30, weight: .bold, design: .serif))
+                            .font(.system(size: 26, weight: .bold, design: .rounded))
                             .foregroundStyle(Color.inkCoffee)
                             .cozySwap(w.id)
-                        Text(w.phonetic)
-                            .font(.system(size: 14, design: .monospaced))
-                            .foregroundStyle(Color.inkTaupe)
+                        if !w.phonetic.isEmpty {
+                            Text(w.phonetic)
+                                .font(.system(size: 13, design: .monospaced))
+                                .foregroundStyle(Color.inkTaupe)
+                        }
                     }
                     Spacer()
                     Button {
@@ -192,56 +300,37 @@ private struct VocabCard: View {
                         model.speak(w)
                     } label: {
                         Image(systemName: "speaker.wave.2.fill")
-                            .font(.system(size: 16, weight: .semibold))
-                            .frame(width: 42, height: 42)
+                            .font(.system(size: 15, weight: .semibold))
+                            .frame(width: 38, height: 38)
                             .background(Circle().fill(Color.accentSage.opacity(0.16)))
-                            .overlay(Circle().strokeBorder(Color.accentSage.opacity(0.3), lineWidth: 1))
                             .foregroundStyle(Color.accentSage)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Phát âm")
                 }
 
                 Button {
                     Haptics.tap()
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.78)) { revealed.toggle() }
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.78)) { revealed.toggle() }
                 } label: {
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 4) {
                         if revealed {
-                            HStack(spacing: 6) {
-                                Text("✨").font(.system(size: 14))
-                                Text(w.meaning)
-                                    .font(CozyFont.title(18, weight: .bold))
-                                    .foregroundStyle(Color.inkCoffee)
-                            }
+                            Text(w.meaning)
+                                .font(CozyFont.title(17, weight: .bold))
+                                .foregroundStyle(Color.inkCoffee)
                             if !w.example.isEmpty {
                                 Text("“\(w.example)”")
-                                    .font(.system(size: 14, design: .serif).italic())
+                                    .font(.system(size: 13, design: .serif).italic())
                                     .foregroundStyle(Color.inkTaupe)
                             }
                         } else {
-                            HStack(spacing: 8) {
-                                Image(systemName: "sparkles")
-                                    .foregroundStyle(Color.accentSage)
-                                Text("Chạm để lật nghĩa — thử đoán trước nha!")
-                                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                                    .foregroundStyle(Color.inkTaupe)
-                            }
+                            Text("Chạm để xem nghĩa")
+                                .font(.system(size: 13.5, weight: .semibold, design: .rounded))
+                                .foregroundStyle(Color.inkTaupe)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(14)
-                    .background(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(revealed ? Color.accentSage.opacity(0.14) : Color.bgCream)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .strokeBorder(
-                                Color.accentSage.opacity(revealed ? 0.35 : 0.4),
-                                style: revealed ? StrokeStyle(lineWidth: 1) : StrokeStyle(lineWidth: 1.2, dash: [5, 4])
-                            )
-                    )
+                    .padding(12)
+                    .background(RoundedRectangle(cornerRadius: 14).fill(revealed ? Color.accentSage.opacity(0.14) : Color.bgCream))
                 }
                 .buttonStyle(.plain)
 
@@ -250,54 +339,26 @@ private struct VocabCard: View {
                         .buttonStyle(CozyPillButtonStyle(tint: .accentSage))
                     Button { revealed = false; model.skipWord() } label: { Label("Đổi từ", systemImage: "shuffle") }
                         .buttonStyle(CozyPillButtonStyle(tint: .accentSage, filled: false))
-                    Button { revealed = false; model.forgotWord() } label: { Text("Quên") }
-                        .buttonStyle(CozyPillButtonStyle(tint: .inkTaupe, filled: false))
                     Spacer(minLength: 0)
                     Button {
                         Haptics.tap()
                         showDecks = true
                     } label: {
-                        Image(systemName: "books.vertical.fill")
-                            .font(.system(size: 15))
-                            .frame(width: 36, height: 36)
-                            .background(Circle().fill(Color.bgCream))
+                        Label("Kho từ", systemImage: "books.vertical.fill")
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
                             .foregroundStyle(Color.inkTaupe)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .background(Capsule().fill(Color.bgCream))
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Chọn kho từ")
-                }
-
-                if let s = model.reviewState(for: w) {
-                    StageDots(stage: s.stage)
                 }
             } else {
-                Text("Chưa có từ nào trong kho đã chọn.")
-                    .foregroundStyle(Color.inkTaupe)
                 Button("Chọn kho từ vựng") { showDecks = true }
                     .buttonStyle(CozyPillButtonStyle(tint: .accentSage))
             }
         }
         .cozyCard(accent: .accentSage)
-    }
-}
-
-private struct StageDots: View {
-    var stage: Int
-
-    var body: some View {
-        HStack(spacing: 6) {
-            ForEach(Array(SpacedRepetition.intervals.enumerated()), id: \.offset) { i, days in
-                VStack(spacing: 2) {
-                    Circle()
-                        .fill(i < stage ? Color.accentSage : Color.accentSage.opacity(0.2))
-                        .frame(width: 10, height: 10)
-                    Text("\(days)n").font(.system(size: 9, weight: .medium)).foregroundStyle(Color.inkTaupe)
-                }
-            }
-            Text("Chu kỳ ôn tập").font(.system(size: 11)).foregroundStyle(Color.inkTaupe)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Đã qua \(stage) trên \(SpacedRepetition.intervals.count) chu kỳ ôn")
     }
 }
 
@@ -317,7 +378,7 @@ private struct DeckPickerSheet: View {
                             get: { model.settings.activeDecks.contains(deck) },
                             set: { model.setDeck(deck, active: $0) }
                         )) {
-                            Label(deck.displayName, systemImage: "book").labelStyle(DeckLabel(emoji: deck.emoji))
+                            HStack { Text(deck.emoji); Text(deck.displayName) }
                         }
                     }
                 }
@@ -343,110 +404,216 @@ private struct DeckPickerSheet: View {
                     }
                 }
             }
-            .navigationTitle("Từ vựng")
+            .navigationTitle("Kho từ vựng")
             .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
 
-private struct DeckLabel: LabelStyle {
-    var emoji: String
-    func makeBody(configuration: Configuration) -> some View {
-        HStack { Text(emoji); configuration.title }
+// MARK: - 3. Thời tiết thật (chọn thành phố / GPS ngay tại chỗ)
+
+private struct WeatherCard: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 11) {
+            CozySectionHeader(
+                title: "Thời tiết thật",
+                symbol: "cloud.sun.fill",
+                accent: .accentSky,
+                trailing: model.snapshot.weather.map { $0.fetchedAt.formatted(date: .omitted, time: .shortened) },
+                animatedIcon: .weather
+            )
+
+            if let w = model.snapshot.weather {
+                HStack(alignment: .center) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text(w.temperatureText)
+                                .font(CozyFont.number(40))
+                                .foregroundStyle(Color.inkCoffee)
+                                .cozyNumeric(Int(w.temperatureC.rounded()))
+                            Text(w.placeName)
+                                .font(CozyFont.title(18, weight: .bold))
+                                .foregroundStyle(Color.inkCoffee)
+                        }
+                        Text("\(w.condition.displayName) · Cảm giác \(Int(w.apparentC.rounded()))° · ↑\(Int(w.highC.rounded()))° ↓\(Int(w.lowC.rounded()))° · Ẩm \(Int((w.humidity * 100).rounded()))%")
+                            .font(.system(size: 12, weight: .medium, design: .rounded))
+                            .foregroundStyle(Color.inkTaupe)
+                    }
+                    Spacer()
+                    Image(systemName: w.condition.symbolName)
+                        .symbolRenderingMode(.multicolor)
+                        .font(.system(size: 36))
+                }
+            } else {
+                HStack(spacing: 8) {
+                    ProgressView()
+                    Text("Đang tải thời tiết thật…")
+                        .font(CozyFont.body(13))
+                        .foregroundStyle(Color.inkTaupe)
+                }
+            }
+
+            // Chọn nhanh thành phố / GPS để thời tiết luôn đúng nơi bạn ở
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(WeatherLocationPreset.allCases) { preset in
+                        let selected = model.settings.weatherLocation == preset
+                        Button {
+                            Haptics.tap()
+                            Task { await model.setWeatherLocation(preset) }
+                        } label: {
+                            Text(preset == .autoGPS ? "📍 GPS" : preset.shortName)
+                                .font(.system(size: 12, weight: selected ? .bold : .medium, design: .rounded))
+                                .foregroundStyle(selected ? .white : Color.inkCoffee)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(Capsule().fill(selected ? Color.accentSky : Color.bgCream))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            if let err = model.weather.lastError {
+                Text(err).font(.caption).foregroundStyle(Color.accentPeach)
+            }
+        }
+        .cozyCard(accent: .accentSky)
     }
 }
 
-// MARK: - Check-in bar
+// MARK: - 4. Cảm xúc của bạn & Người kết nối
 
-private struct CheckInBar: View {
+private struct MoodAndPartnerCard: View {
     @Environment(AppModel.self) private var model
     @Binding var showCheckIn: Bool
+    @State private var quickNote = ""
+
+    private var partner: MemberStatus? {
+        model.couple?.partner(of: DemoData.meID)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             CozySectionHeader(
-                title: "Mood & Món ăn",
-                symbol: "face.smiling",
+                title: "Cảm xúc & Người kết nối",
+                symbol: "heart.fill",
                 accent: .accentPeach,
-                trailing: model.latestCheckInToday.map { timeString($0.date) },
-                animatedIcon: .mood
+                trailing: model.latestCheckInToday.map { $0.mood.displayName },
+                animatedIcon: .heart
             )
-            if let c = model.latestCheckInToday {
+
+            // Hiển thị trạng thái thật của người kết nối (nếu đã ghép đôi)
+            if let p = partner {
                 HStack(spacing: 12) {
-                    Text(c.mood.emoji)
-                        .font(.system(size: 36))
-                        .frame(width: 54, height: 54)
-                        .background(Circle().fill(Color.accentPeach.opacity(0.16)))
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(c.mood.displayName)
-                            .font(CozyFont.title(18))
-                            .foregroundStyle(Color.inkCoffee)
-                        if !c.foods.isEmpty {
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 6) {
-                                    ForEach(c.foods) { f in
-                                        Text("\(f.emoji) \(f.displayName)")
-                                            .font(.system(size: 12, weight: .semibold, design: .rounded))
-                                            .foregroundStyle(Color.inkCoffee)
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 4)
-                                            .background(Capsule().fill(Color.accentHoney.opacity(0.2)))
-                                    }
-                                }
+                    MascotView(
+                        state: MascotEngine.resolve(species: p.species, mood: p.mood, weather: nil, date: model.now),
+                        size: 52,
+                        animated: false
+                    )
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text(p.displayName)
+                                .font(CozyFont.title(16, weight: .bold))
+                                .foregroundStyle(Color.inkCoffee)
+                            if let m = p.mood {
+                                Text("\(m.emoji) \(m.displayName)")
+                                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                                    .foregroundStyle(Color.accentPeach)
                             }
                         }
-                        if !c.note.isEmpty {
-                            Text("“\(c.note)”")
-                                .font(.custom("Noteworthy-Bold", size: 14, relativeTo: .body))
+                        if !p.note.isEmpty {
+                            Text("“\(p.note)”")
+                                .font(.system(size: 13, weight: .medium, design: .rounded))
                                 .foregroundStyle(Color.inkCoffee)
                         }
+                        Text("\(p.weatherLine.map { "\($0) · " } ?? "")\(p.updatedAt.formatted(.relative(presentation: .named, unitsStyle: .narrow)))")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Color.inkTaupe)
                     }
+                    Spacer()
                 }
-                BatteryBar(value: c.socialBattery, tint: .accentPeach)
+                .padding(10)
+                .background(RoundedRectangle(cornerRadius: 16).fill(Color.accentPeach.opacity(0.10)))
+            } else {
+                Text("Chưa kết nối ai. Bấm gửi cảm xúc bên dưới hoặc sang tab Kết nối để ghép đôi với người ấy.")
+                    .font(CozyFont.body(12.5))
+                    .foregroundStyle(Color.inkTaupe)
             }
-            // Check-in 1 chạm: chạm emoji để ghi nhanh, giữ món ăn & pin lần trước.
-            HStack(spacing: 6) {
+
+            // Chọn nhanh cảm xúc của bạn (1 chạm)
+            HStack(spacing: 5) {
                 ForEach(Mood.allCases) { mood in
                     let isSelected = model.latestCheckInToday?.mood == mood
                     Button {
                         let last = model.latestCheckInToday
-                        model.checkIn(mood: mood, foods: last?.foods ?? [], battery: last?.socialBattery ?? 60, note: last?.note ?? "")
+                        model.checkIn(mood: mood, foods: last?.foods ?? [], battery: last?.socialBattery ?? 60, note: quickNote.isEmpty ? (last?.note ?? "") : quickNote)
                         Haptics.tap()
                     } label: {
                         Text(mood.emoji)
-                            .font(.system(size: isSelected ? 26 : 23))
-                            .frame(maxWidth: .infinity, minHeight: 44)
-                            .background(
-                                RoundedRectangle(cornerRadius: 15, style: .continuous)
-                                    .fill(isSelected ? Color.accentPeach.opacity(0.28) : Color.bgCream)
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 15, style: .continuous)
-                                    .strokeBorder(isSelected ? Color.accentPeach : Color.cardBorder.opacity(0.8), lineWidth: isSelected ? 1.8 : 1)
-                            )
-                            .scaleEffect(isSelected ? 1.05 : 1)
+                            .font(.system(size: isSelected ? 24 : 21))
+                            .frame(maxWidth: .infinity, minHeight: 40)
+                            .background(RoundedRectangle(cornerRadius: 12).fill(isSelected ? Color.accentPeach.opacity(0.28) : Color.bgCream))
+                            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(isSelected ? Color.accentPeach : .clear, lineWidth: 1.5))
                     }
                     .buttonStyle(.plain)
-                    .animation(.spring(response: 0.28, dampingFraction: 0.65), value: isSelected)
                     .accessibilityLabel(mood.displayName)
                 }
             }
-            Button {
-                Haptics.tap()
-                showCheckIn = true
-            } label: {
-                Label("Check-in đầy đủ (món ăn, pin xã hội, note)", systemImage: "square.and.pencil")
-                    .frame(maxWidth: .infinity)
+
+            // Viết note ngắn trực tiếp
+            HStack(spacing: 8) {
+                TextField("Trạng thái ngắn của bạn (tối đa 30 ký tự)…", text: $quickNote)
+                    .font(.system(size: 13.5, weight: .medium, design: .rounded))
+                    .padding(.horizontal, 11)
+                    .padding(.vertical, 8)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.bgCream))
+                    .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.cardBorder))
+                    .onChange(of: quickNote) { _, v in if v.count > CozyMetrics.noteMaxLength { quickNote = String(v.prefix(CozyMetrics.noteMaxLength)) } }
+                    .submitLabel(.done)
+                    .onSubmit { saveQuickNote() }
+                Button("Lưu") { saveQuickNote() }
+                    .buttonStyle(CozyPillButtonStyle(tint: .accentPeach, filled: false))
             }
-            .buttonStyle(CozyPillButtonStyle(tint: .accentPeach, filled: false))
+
+            // Nút gửi cảm xúc thật qua iMessage / Zalo / Messenger (cozydaily://)
+            HStack(spacing: 8) {
+                if let url = model.myStatusShareURL {
+                    ShareLink(
+                        item: url,
+                        subject: Text("Cảm xúc của \(model.settings.displayName)"),
+                        message: Text("Chạm link này để cập nhật cảm xúc của \(model.settings.displayName) lên Lock Screen CozyDaily nhé!")
+                    ) {
+                        Label("Gửi cảm xúc cho người ấy", systemImage: "paperplane.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(CozyPillButtonStyle(tint: .accentPeach, filled: true))
+                }
+                Button { showCheckIn = true } label: {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 14, weight: .bold))
+                        .frame(width: 38, height: 38)
+                        .background(Circle().fill(Color.bgCream))
+                        .foregroundStyle(Color.inkTaupe)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Check-in đầy đủ")
+            }
         }
         .cozyCard(accent: .accentPeach)
+        .onAppear { quickNote = model.latestCheckInToday?.note ?? "" }
     }
 
-    func timeString(_ d: Date) -> String {
-        d.formatted(date: .omitted, time: .shortened)
+    private func saveQuickNote() {
+        let last = model.latestCheckInToday
+        model.checkIn(mood: last?.mood ?? .chill, foods: last?.foods ?? [], battery: last?.socialBattery ?? 60, note: quickNote)
+        Haptics.success()
     }
 }
+
+// MARK: - Check-in đầy đủ & EventRow (dùng chung)
 
 struct CheckInSheet: View {
     @Environment(AppModel.self) private var model
@@ -543,111 +710,6 @@ struct CheckInSheet: View {
                 }
             }
         }
-    }
-}
-
-// MARK: - Weather
-
-private struct WeatherCard: View {
-    @Environment(AppModel.self) private var model
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            CozySectionHeader(
-                title: "Thời tiết & Gợi ý",
-                symbol: "cloud.sun.fill",
-                accent: .accentSky,
-                trailing: model.snapshot.weather.map { "cập nhật \($0.fetchedAt.formatted(date: .omitted, time: .shortened))" },
-                animatedIcon: .weather
-            )
-            if let w = model.snapshot.weather {
-                HStack(alignment: .center, spacing: 14) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(w.temperatureText)
-                            .font(CozyFont.number(44))
-                            .foregroundStyle(Color.inkCoffee)
-                            .cozyNumeric(Int(w.temperatureC.rounded()))
-                        Label(w.condition.displayName, systemImage: w.condition.symbolName)
-                            .symbolRenderingMode(.multicolor)
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
-                        Text("\(w.placeName) · cảm giác \(Int(w.apparentC))° · C:\(Int(w.highC))° T:\(Int(w.lowC))°")
-                            .font(CozyFont.body(12))
-                            .foregroundStyle(Color.inkTaupe)
-                    }
-                    Spacer()
-                    Image(systemName: w.condition.symbolName)
-                        .symbolRenderingMode(.multicolor)
-                        .font(.system(size: 40))
-                        .frame(width: 64, height: 64)
-                        .background(Circle().fill(Color.accentSky.opacity(0.14)))
-                }
-
-                HStack(spacing: 8) {
-                    Image(systemName: "tshirt.fill")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Color.accentSky)
-                    Text(WeatherSuggestion.outfit(for: w))
-                        .font(.system(size: 13, weight: .medium, design: .rounded))
-                        .foregroundStyle(Color.inkCoffee)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 9)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.accentSky.opacity(0.10)))
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(WeatherSuggestion.foods(for: w)) { f in
-                            Text("\(f.emoji) \(f.displayName)")
-                                .font(.system(size: 13, weight: .semibold, design: .rounded))
-                                .foregroundStyle(Color.inkCoffee)
-                                .padding(.horizontal, 11)
-                                .padding(.vertical, 6)
-                                .background(Capsule().fill(Color.accentHoney.opacity(0.22)))
-                        }
-                    }
-                }
-                if model.settings.shareWeatherWithSpaces {
-                    Label("Đang chia sẻ thời tiết với người yêu & nhóm bạn", systemImage: "person.2.wave.2")
-                        .font(.caption)
-                        .foregroundStyle(Color.inkTaupe)
-                }
-            } else {
-                Text("Cho phép vị trí để xem thời tiết và gợi ý món ăn theo trời nhé.")
-                    .font(CozyFont.body(14))
-                    .foregroundStyle(Color.inkTaupe)
-            }
-        }
-        .cozyCard(accent: .accentSky)
-    }
-}
-
-// MARK: - Events
-
-private struct UpcomingEventsCard: View {
-    @Environment(AppModel.self) private var model
-
-    var body: some View {
-        let events = model.upcomingEvents()
-        VStack(alignment: .leading, spacing: 12) {
-            CozySectionHeader(
-                title: "Sắp tới",
-                symbol: "calendar",
-                accent: .accentSky,
-                trailing: events.isEmpty ? nil : "\(events.count) sự kiện",
-                animatedIcon: .calendar
-            )
-            if events.isEmpty {
-                Text("Chưa có sự kiện nào — sang tab Lịch thêm ngày đặc biệt của bạn nhé 🌸")
-                    .font(CozyFont.body(13))
-                    .foregroundStyle(Color.inkTaupe)
-            } else {
-                ForEach(events) { e in
-                    EventRow(event: e, status: model.status(of: e))
-                }
-            }
-        }
-        .cozyCard()
     }
 }
 

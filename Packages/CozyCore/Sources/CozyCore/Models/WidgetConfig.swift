@@ -37,26 +37,28 @@ public enum WidgetFontStyle: String, Codable, CaseIterable, Sendable, Identifiab
 
 /// Lớp 1 — Nội dung.
 public enum WidgetContentKind: String, Codable, CaseIterable, Sendable, Identifiable {
-    case vocab, moodFood, couple, squad, event, weather, streak, mascot, combo
+    case schedule, vocab, weather, couple, moodFood, squad, event, streak, mascot, combo
 
     public var id: String { rawValue }
 
     public var displayName: String {
         switch self {
+        case .schedule: return "Lịch & Việc hôm nay"
         case .vocab: return "Từ vựng"
         case .moodFood: return "Mood + Món ăn"
-        case .couple: return "Người yêu"
+        case .couple: return "Người kết nối"
         case .squad: return "Nhóm bạn"
         case .event: return "Sự kiện"
         case .weather: return "Thời tiết"
         case .streak: return "Chuỗi học"
         case .mascot: return "Linh vật"
-        case .combo: return "Combo 2-in-1"
+        case .combo: return "Tổng hợp"
         }
     }
 
     public var symbolName: String {
         switch self {
+        case .schedule: return "checklist"
         case .vocab: return "character.book.closed.fill"
         case .moodFood: return "face.smiling"
         case .couple: return "heart.fill"
@@ -71,9 +73,9 @@ public enum WidgetContentKind: String, Codable, CaseIterable, Sendable, Identifi
 
     public var defaultAccent: ColorToken {
         switch self {
+        case .schedule, .event, .weather: return .accentSky
         case .vocab, .streak: return .accentSage
         case .moodFood, .couple, .squad, .mascot: return .accentPeach
-        case .event, .weather: return .accentSky
         case .combo: return .accentHoney
         }
     }

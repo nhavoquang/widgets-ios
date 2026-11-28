@@ -191,4 +191,33 @@ final class SpaceMergeTests: XCTestCase {
         XCTAssertTrue(SpaceMerge.canAcceptMember(kind: .squad, existingMembers: Array(extraMembers.prefix(7)), userID: "_new"))
         XCTAssertFalse(SpaceMerge.canAcceptMember(kind: .squad, existingMembers: Array(extraMembers.prefix(8)), userID: "_new"))
     }
+
+    func testTasksTodayScheduleAndPartnerLink() throws {
+        let repo = CozyRepository(store: TestCal.tempStore(), calendar: TestCal.vn)
+        let now = TestCal.date(2026, 11, 28, 9, 0)
+        // Fresh repo không được chứa dữ liệu mẫu giả
+        XCTAssertTrue(repo.snapshot().events.isEmpty)
+        XCTAssertNil(repo.snapshot().weather)
+        XCTAssertTrue(repo.snapshot().spaces.isEmpty)
+
+        // Thêm công việc & sự kiện hôm nay
+        let task = repo.addTask(title: "Gửi báo cáo", timeText: "14:00", day: now)!
+        repo.upsertEvent(CozyEvent(title: "Họp nhóm", kind: .deadline(due: TestCal.date(2026, 11, 28, 10, 30))))
+        let schedule = repo.todaySchedule(now: now)
+        XCTAssertEqual(schedule.map(\.title), ["Họp nhóm", "Gửi báo cáo"])
+        repo.toggleTask(id: task.id)
+        XCTAssertTrue(repo.tasks(on: now).first?.isDone == true)
+
+        // PartnerStatusLink encode/decode thật qua cozydaily://partner?...
+        let url = try XCTUnwrap(PartnerStatusLink.makeURL(
+            name: "Minh", species: .dog, mood: .happy, note: "Nhớ bạn nè",
+            weatherLine: "26° Hà Nội", deviceBattery: 0.78, at: now
+        ))
+        let parsed = try XCTUnwrap(PartnerStatusLink.parse(url))
+        XCTAssertEqual(parsed.name, "Minh")
+        XCTAssertEqual(parsed.mood, .happy)
+        XCTAssertEqual(parsed.note, "Nhớ bạn nè")
+        repo.applyIncomingPartner(parsed)
+        XCTAssertEqual(repo.space(kind: .couple)?.partner(of: DemoData.meID)?.displayName, "Minh")
+    }
 }

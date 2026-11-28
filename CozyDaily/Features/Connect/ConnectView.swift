@@ -754,10 +754,21 @@ private struct InviteAccessCard: View {
                     }
                 }
             } else {
+                if let statusURL = model.myStatusShareURL {
+                    ShareLink(
+                        item: statusURL,
+                        subject: Text("Cảm xúc của \(model.settings.displayName)"),
+                        message: Text("Chạm link này để cập nhật cảm xúc của \(model.settings.displayName) lên Lock Screen CozyDaily!")
+                    ) {
+                        Label("Gửi cảm xúc trực tiếp (Zalo / iMessage)", systemImage: "paperplane.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(CozyPillButtonStyle(tint: tint, filled: true))
+                }
                 HStack(spacing: 8) {
-                    Image(systemName: "icloud.slash")
+                    Image(systemName: "link.badge.plus")
                         .foregroundStyle(Color.inkTaupe)
-                    Text("Đang chạy bản chưa bật iCloud (sideload miễn phí). Mời người thật cần bản IPA đã ký Apple Developer có CloudKit.")
+                    Text("Hoạt động ngay cả trên bản cài miễn phí: gửi link cho người ấy chạm mở là cập nhật cảm xúc thật lên Lock Screen.")
                         .font(.caption)
                         .foregroundStyle(Color.inkTaupe)
                 }
@@ -824,12 +835,23 @@ private struct EmptySpaceInviteCard: View {
                 .buttonStyle(CozyPillButtonStyle(tint: tint, filled: true))
                 .disabled(working)
             } else {
+                if kind == .couple, let statusURL = model.myStatusShareURL {
+                    ShareLink(
+                        item: statusURL,
+                        subject: Text("Kết nối CozyDaily với \(model.settings.displayName)"),
+                        message: Text("Chạm link này để hiện cảm xúc của \(model.settings.displayName) lên Lock Screen CozyDaily nhé!")
+                    ) {
+                        Label("Gửi link kết nối cảm xúc (Zalo / iMessage)", systemImage: "paperplane.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(CozyPillButtonStyle(tint: tint, filled: true))
+                }
                 Button { onCreateLocal() } label: {
                     Label("Tạo không gian trên máy", systemImage: "plus.circle.fill")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(CozyPillButtonStyle(tint: tint, filled: true))
-                Text("Bản cài miễn phí chưa có iCloud; bạn vẫn có thể tạo không gian để thiết kế widget trước.")
+                .buttonStyle(CozyPillButtonStyle(tint: tint, filled: kind == .squad))
+                Text("Người ấy chỉ cần chạm link gửi qua Zalo/iMessage là cảm xúc thật tự hiện lên màn hình khóa.")
                     .font(.caption)
                     .foregroundStyle(Color.inkTaupe)
                     .multilineTextAlignment(.center)

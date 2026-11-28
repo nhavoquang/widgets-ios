@@ -68,3 +68,63 @@ public struct CozyEvent: Codable, Hashable, Sendable, Identifiable {
         self.createdAt = createdAt
     }
 }
+
+/// Công việc / nhắc nhở trong ngày (hiện trực tiếp trên Lock Screen & Hôm nay).
+public struct CozyTask: Codable, Hashable, Sendable, Identifiable {
+    public var id: UUID
+    public var title: String
+    /// Ngày áp dụng dạng `yyyy-MM-dd` (nil = việc chung chưa đặt ngày).
+    public var dayKey: String?
+    /// Giờ tùy chọn dạng `HH:mm`, vd. "14:30".
+    public var timeText: String?
+    public var isDone: Bool
+    public var accent: ColorToken
+    public var createdAt: Date
+
+    public init(
+        id: UUID = UUID(),
+        title: String,
+        dayKey: String? = nil,
+        timeText: String? = nil,
+        isDone: Bool = false,
+        accent: ColorToken = .accentSky,
+        createdAt: Date = Date()
+    ) {
+        self.id = id
+        self.title = title
+        self.dayKey = dayKey
+        self.timeText = timeText
+        self.isDone = isDone
+        self.accent = accent
+        self.createdAt = createdAt
+    }
+}
+
+/// Một dòng thống nhất cho lịch trình & công việc hôm nay (gộp từ Apple Calendar + CozyEvent + CozyTask).
+public struct TodayScheduleItem: Hashable, Sendable, Identifiable {
+    public var id: String
+    public var title: String
+    public var timeText: String?
+    public var isTask: Bool
+    public var taskID: UUID?
+    public var isDone: Bool
+    public var accent: ColorToken
+
+    public init(
+        id: String,
+        title: String,
+        timeText: String? = nil,
+        isTask: Bool,
+        taskID: UUID? = nil,
+        isDone: Bool = false,
+        accent: ColorToken = .accentSky
+    ) {
+        self.id = id
+        self.title = title
+        self.timeText = timeText
+        self.isTask = isTask
+        self.taskID = taskID
+        self.isDone = isDone
+        self.accent = accent
+    }
+}

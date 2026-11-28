@@ -180,3 +180,80 @@ public extension Array where Element == SharedSpace {
 public enum SquadReaction {
     public static let all: [String] = ["❤️", "😂", "🔥", "🥹", "👏", "🫶", "😴", "🍻"]
 }
+
+/// Dữ liệu trạng thái thật của một người gửi qua link `cozydaily://partner?...`
+/// giúp 2 người kết nối và cập nhật cảm xúc thật lên Lock Screen ngay cả khi chưa bật iCloud trả phí.
+public struct IncomingPartnerUpdate: Hashable, Sendable {
+    public var name: String
+    public var species: MascotSpecies
+    public var mood: Mood?
+    public var note: String
+    public var weatherLine: String?
+    public var deviceBattery: Double?
+    public var updatedAt: Date
+
+    public init(
+        name: String,
+        species: MascotSpecies = .cat,
+        mood: Mood? = nil,
+        note: String = "",
+        weatherLine: String? = nil,
+        deviceBattery: Double? = nil,
+        updatedAt: Date = Date()
+    ) {
+        self.name = name
+        self.species = species
+        self.mood = mood
+        self.note = note
+        self.weatherLine = weatherLine
+        self.deviceBattery = deviceBattery
+        self.updatedAt = updatedAt
+    }
+}
+
+public enum PartnerStatusLink {
+    public static let scheme = "cozydaily"
+    public static let host = "partner"
+
+    public static func makeURL(
+        name: String,
+        species: MascotSpecies,
+        mood: Mood?,
+        note: String,
+        weatherLine: String?,
+        deviceBattery: Double?,
+        at date: Date = Date()
+    ) -> URL? {
+        var c = URLComponents()
+        c.scheme = scheme
+        c.host = host
+        var items: [URLQueryItem] = [
+            URLQueryItem(name: "n", value: String(name.prefix(24))),
+            URLQueryItem(name: "s", value: species.rawValue),
+            URLQueryItem(name: "t", value: String(Int(date.timeIntervalSince1970))),
+        ]
+        if let mood { items.append(URLQueryItem(name: "m", value: mood.rawValue)) }
+        if !note.isEmpty { items.append(URLQueryItem(name: "note", value: String(note.prefix(CozyMetrics.noteMaxLength)))) }
+        if let weatherLine, !weatherLine.isEmpty { items.append(URLQueryItem(name: "w", value: weatherLine)) }
+        if let deviceBattery { items.append(URLQueryItem(name: "b", value: String(Int((deviceBattery * 100).rounded())))) }
+        c.queryItems = items
+        return c.url
+    }
+
+    public static func parse(_ url: URL) -> IncomingPartnerUpdate? {
+        guard url.scheme?.lowercased() == scheme,
+              url.host?.lowercased() == host,
+              let comps = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let items = comps.queryItems else { return nil }
+        let dict = Dictionary(items.compactMap { item in item.value.map { (item.name, $0) } }, uniquingKeysWith: { _, new in new })
+        let rawName = (dict["n"] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !rawName.isEmpty else { return nil }
+        let species = dict["s"].flatMap(MascotSpecies.init(rawValue:)) ?? .cat
+        let mood = dict["m"].flatMap(Mood.init(rawValue:))
+        let note = CheckIn.clampNote(dict["note"] ?? "")
+        let weather = dict["w"]
+        let bat = dict["b"].flatMap(Double.init).map { min(max($0 / 100.0, 0), 1) }
+        let ts = dict["t"].flatMap(TimeInterval.init).map(Date.init(timeIntervalSince1970:)) ?? Date()
+        return IncomingPartnerUpdate(name: rawName, species: species, mood: mood, note: note, weatherLine: weather, deviceBattery: bat, updatedAt: ts)
+    }
+}

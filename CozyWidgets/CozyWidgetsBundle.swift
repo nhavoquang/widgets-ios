@@ -5,11 +5,11 @@ import CozyCore
 @main
 struct CozyWidgetsBundle: WidgetBundle {
     var body: some Widget {
-        StudioWidget()
-        TodayCozyWidget()
-        WeatherCozyWidget()
+        TodayScheduleWidget()
         VocabWidget()
+        WeatherCozyWidget()
         CoupleWidget()
+        StudioWidget()
         EventWidget()
         StandByWidget()
     }
@@ -72,25 +72,14 @@ struct FixedProvider: TimelineProvider {
 
 // MARK: - Widgets
 
-struct StudioWidget: Widget {
+struct TodayScheduleWidget: Widget {
     var body: some WidgetConfiguration {
-        AppIntentConfiguration(kind: "CozyStudioWidget", intent: SelectStudioWidgetIntent.self, provider: StudioProvider()) { entry in
+        StaticConfiguration(kind: "CozyTodayScheduleWidget", provider: FixedProvider(content: .schedule)) { entry in
             CozyWidgetEntryView(data: entry.data)
         }
-        .configurationDisplayName("Xưởng Widget")
-        .description("Hiển thị mẫu bạn tự thiết kế: nội dung, linh vật 3D, màu, font và khung viền.")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular, .accessoryCircular, .accessoryInline])
-    }
-}
-
-struct TodayCozyWidget: Widget {
-    var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "CozyTodayWidget", provider: FixedProvider(content: .combo)) { entry in
-            CozyWidgetEntryView(data: entry.data)
-        }
-        .configurationDisplayName("Hôm nay & Thời tiết")
-        .description("Linh vật 3D dễ thương kèm thời tiết thật, âm lịch, từ vựng & lịch sắp tới trên Home và Lock Screen.")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular, .accessoryCircular, .accessoryInline])
+        .configurationDisplayName("Lịch & Việc hôm nay")
+        .description("Hiển thị lịch Apple Calendar và danh sách việc cần làm hôm nay trên Lock Screen & Home Screen.")
+        .supportedFamilies([.accessoryRectangular, .accessoryCircular, .accessoryInline, .systemSmall, .systemMedium, .systemLarge])
     }
 }
 
@@ -99,9 +88,20 @@ struct WeatherCozyWidget: Widget {
         StaticConfiguration(kind: "CozyWeatherWidget", provider: FixedProvider(content: .weather)) { entry in
             CozyWidgetEntryView(data: entry.data)
         }
-        .configurationDisplayName("Thời tiết & Linh vật")
-        .description("Nhiệt độ thật, gợi ý trang phục & món ăn cùng linh vật đổi đồ theo trời.")
-        .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular, .accessoryCircular, .accessoryInline])
+        .configurationDisplayName("Thời tiết thật")
+        .description("Nhiệt độ thật, cảm giác, cao/thấp & độ ẩm hiển thị gọn đẹp trên Lock Screen và Home Screen.")
+        .supportedFamilies([.accessoryRectangular, .accessoryCircular, .accessoryInline, .systemSmall, .systemMedium])
+    }
+}
+
+struct StudioWidget: Widget {
+    var body: some WidgetConfiguration {
+        AppIntentConfiguration(kind: "CozyStudioWidget", intent: SelectStudioWidgetIntent.self, provider: StudioProvider()) { entry in
+            CozyWidgetEntryView(data: entry.data)
+        }
+        .configurationDisplayName("Xưởng Widget")
+        .description("Hiển thị mẫu bạn tự thiết kế: nội dung, linh vật 3D, màu, font và khung viền.")
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular, .accessoryCircular, .accessoryInline])
     }
 }
 
@@ -121,9 +121,9 @@ struct CoupleWidget: Widget {
         StaticConfiguration(kind: "CozyCoupleWidget", provider: FixedProvider(content: .couple)) { entry in
             CozyWidgetEntryView(data: entry.data)
         }
-        .configurationDisplayName("Người yêu")
-        .description("Thẻ trạng thái đôi, đếm ngày yêu và Quick Ping.")
-        .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular, .accessoryCircular, .accessoryInline])
+        .configurationDisplayName("Cảm xúc người kết nối")
+        .description("Hiện cảm xúc, lời nhắn, thời tiết & pin của người đã kết nối ngay trên Lock Screen và Home Screen.")
+        .supportedFamilies([.accessoryRectangular, .accessoryCircular, .accessoryInline, .systemSmall, .systemMedium])
     }
 }
 

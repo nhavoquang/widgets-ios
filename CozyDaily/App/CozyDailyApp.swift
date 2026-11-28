@@ -16,6 +16,7 @@ struct CozyDailyApp: App {
                 .tint(Color.accentPeach)
                 .preferredColorScheme(model.settings.appearance.colorScheme)
                 .task { await model.onForeground() }
+                .onOpenURL { url in model.handleIncomingURL(url) }
                 .onReceive(NotificationCenter.default.publisher(for: .cozyRemoteDidChange).receive(on: DispatchQueue.main)) { _ in
                     withAnimation(CozyMotion.spring) { model.refresh() }
                     WidgetCenter.shared.reloadAllTimelines()
